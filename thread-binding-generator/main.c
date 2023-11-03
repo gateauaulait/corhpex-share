@@ -69,12 +69,12 @@ int c = 0;
  * to the next object of this level
  * @param topology the topology of the machine
  * @param obj the currently visited node
- * @param depth USELESS
+ * @param pflag 1 only if the physical id should be used
  * @return true if the parent node can ask the next sibiling next time else
  * false
  */
 static bool policy_first(hwloc_topology_t topology, hwloc_obj_t obj,
-                         int depth) {
+                         int pflag) {
 
   // Decrement the number of visits left
   *((unsigned *)obj->userdata + sizeof(unsigned)) -= 1;
@@ -83,7 +83,7 @@ static bool policy_first(hwloc_topology_t topology, hwloc_obj_t obj,
   // binding list
   // If the child returns true then it should not be visited next time,
   // increment the next child index (in userdata)
-  if (tree_search(topology, obj->children[*(unsigned *)obj->userdata], depth)) {
+  if (tree_search(topology, obj->children[*(unsigned *)obj->userdata], pflag)) {
     (*(unsigned *)obj->userdata)++;
   }
 
@@ -103,10 +103,10 @@ static bool policy_first(hwloc_topology_t topology, hwloc_obj_t obj,
  * lowest priority
  * @param topology the topology of the machine
  * @param obj the currently visited node
- * @param depth USELESS
+ * @param pflag 1 only if the physical id should be used
  * @return true, the parent node can always ask the next sibiling next time
  */
-static bool policy_last(hwloc_topology_t topology, hwloc_obj_t obj, int depth) {
+static bool policy_last(hwloc_topology_t topology, hwloc_obj_t obj, int pflag) {
   // Decrement the number of visits left
   *((unsigned *)obj->userdata + sizeof(unsigned)) -= 1;
 
@@ -114,7 +114,7 @@ static bool policy_last(hwloc_topology_t topology, hwloc_obj_t obj, int depth) {
   // binding list
   // If the child returns true then it should not be visited next time,
   // increment the next child index (in userdata)
-  if (tree_search(topology, obj->children[*(unsigned *)obj->userdata], depth)) {
+  if (tree_search(topology, obj->children[*(unsigned *)obj->userdata], pflag)) {
     (*(unsigned *)obj->userdata)++;
   }
 
@@ -142,61 +142,61 @@ static bool is_pu_free(int puidx) {
  * the type of the node
  * @param topology the topology of the machine
  * @param obj the currently visited node
- * @param depth USELESS
+ * @param pflag 1 only if the physical id should be used
  * @return true if the parent node can ask the next sibiling next time else
  * false (just true if the search has gone well)
  */
-static bool tree_search(hwloc_topology_t topology, hwloc_obj_t obj, int depth) {
+static bool tree_search(hwloc_topology_t topology, hwloc_obj_t obj, int pflag) {
   switch (obj->type) {
   case HWLOC_OBJ_PU:
-    cores[c] = obj->logical_index;
-    /* printf("------ Map thread to PU %d\n", obj->logical_index); */
+    cores[c] = (pflag == 1) ? obj->os_index : obj->logical_index;
+    // printf("------ Map thread to PU %d\n", cores[c]);
     c += 1;
     return true;
   case HWLOC_OBJ_PACKAGE:
     if (bp.package) {
-      return policy_first(topology, obj, 4);
+      return policy_first(topology, obj, pflag);
     } else {
-      return policy_last(topology, obj, 4);
+      return policy_last(topology, obj, pflag);
     }
     break;
   case HWLOC_OBJ_DIE:
     if (bp.die) {
-      return policy_first(topology, obj, 4);
+      return policy_first(topology, obj, pflag);
     } else {
-      return policy_last(topology, obj, 4);
+      return policy_last(topology, obj, pflag);
     }
     break;
   case HWLOC_OBJ_L3CACHE:
     if (bp.l3) {
-      return policy_first(topology, obj, 4);
+      return policy_first(topology, obj, pflag);
     } else {
-      return policy_last(topology, obj, 4);
+      return policy_last(topology, obj, pflag);
     }
     break;
   case HWLOC_OBJ_L2CACHE:
     if (bp.smt) {
-      return policy_first(topology, obj, 4);
+      return policy_first(topology, obj, pflag);
     } else {
-      return policy_last(topology, obj, 4);
+      return policy_last(topology, obj, pflag);
     }
     break;
   case HWLOC_OBJ_L1CACHE:
     if (bp.smt) {
-      return policy_first(topology, obj, 4);
+      return policy_first(topology, obj, pflag);
     } else {
-      return policy_last(topology, obj, 4);
+      return policy_last(topology, obj, pflag);
     }
     break;
   case HWLOC_OBJ_CORE:
     if (bp.smt) {
-      return policy_first(topology, obj, 4);
+      return policy_first(topology, obj, pflag);
     } else {
-      return policy_last(topology, obj, 4);
+      return policy_last(topology, obj, pflag);
     }
     break;
   default:
-    return policy_first(topology, obj, depth);
+    return policy_first(topology, obj, pflag);
   }
 
   return true;
@@ -212,19 +212,36 @@ int check_arg(char *sv) {
   }
 }
 
+
 int main(int argc, char **argv) {
   int topodepth;
   hwloc_topology_t topology;
   hwloc_obj_t obj;
+  /** The flags that tells if we need to use physical ids */
+  int pflag = 0;
+  char o;
 
-  if (argc == 5) {
-    bp.package = check_arg(argv[1]);
-    bp.die = check_arg(argv[2]);
-    bp.l3 = check_arg(argv[3]);
-    bp.smt = check_arg(argv[4]);
+  while ((o = getopt(argc, argv, "p")) != -1) {
+    switch (o) {
+     case 'p':
+       pflag = 1;
+       break;
+      case 'h':
+        fprintf(stderr, "USAGE : binding-gen [-p] PACKAGE_FIRST DIE_FIRST L3_FIRST SMT_FIRST\nBy default use the logical id, to use the physical id add -p\n");
+        break;
+      case '?':
+        fprintf(stderr, "Try `binding-gen -h` to get some help.\n");
+    }
+  }
+
+  if (argc == 5 || argc == 6) {
+    bp.package = check_arg(argv[optind]);
+    bp.die = check_arg(argv[optind+1]);
+    bp.l3 = check_arg(argv[optind+2]);
+    bp.smt = check_arg(argv[optind+3]);
   } else {
     fprintf(stderr, "Error : Wrong number of arguments, must be 4, is %d\n",
-            argc - 1);
+            argc - optind);
     exit(1);
   }
 
@@ -245,7 +262,7 @@ int main(int argc, char **argv) {
   init_userdata(obj);
 
   for (int i = 0; i < nb_pu; i++) {
-    tree_search(topology, obj, 0);
+    tree_search(topology, obj, pflag);
   }
 
   for (int i = 0; i < nb_pu; i++) {

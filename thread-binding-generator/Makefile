@@ -6,7 +6,7 @@ EXEC=bindings-gen
 all: $(EXEC)
 
 $(EXEC): main.c
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
+	$(CC) $(CFLAGS) $^ $(LDFLAGS) -o $@
 
 clean:
-	rm $(EXEC)
+	rm -rf $(EXEC)
