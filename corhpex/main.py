@@ -5,6 +5,7 @@ import subprocess
 import os
 #from spacex import Explorer
 from ExhaustiveExplorer import ExhaustiveExplorer
+from GAExplorer import GAExplorer
 
 def custom_pruning(config, entry_point="pre_exec"):
     # Early pruning for compiler flags only
@@ -37,8 +38,8 @@ def main():
 
     args = parser.parse_args()
 
-    explorer = ExhaustiveExplorer(args.configfile, custom_pruning, args.force, args.dirname)
-
+    #explorer = ExhaustiveExplorer(args.configfile, custom_pruning, args.force, args.dirname)
+    explorer = GAExplorer(args.configfile, custom_pruning, args.force, args.dirname)
 
     if (args.cmd == "explo" or args.cmd == "exp" or args.cmd == "e"):
         explorer.run()

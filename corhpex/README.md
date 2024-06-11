@@ -7,6 +7,7 @@ COmpiler, Runtime and Hardware Parameter EXplorer (CORHPEX), is a framework to e
 You need a python3.11+ environnement with the following modules :
 - tomli
 - numpy
+- pyeasyga
 
 If you plan on mesuring performance counters, we support likwid which needs to be installed and the user needs the appropriate permissions to the MSR. For more informations on how to setup likwid please see the official documentation.
 

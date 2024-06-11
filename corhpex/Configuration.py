@@ -10,6 +10,7 @@ class Configuration:
             self.meta_rep = config["meta_rep"]
             self.res_stats = config["stat_fn"]
             self.space = config["exploration-space"]
+            self.algo_params = config.get("algo_params", {})
             # directory to hold measurement
             self.res_dir = config.get("res_dir", "res_dir/")
             if res_dir != None:
@@ -27,9 +28,7 @@ class Configuration:
                 else:
                     self.measure["perfcounters"] = Option.empty()
             else:
-                # If the mesure section is absent assume only time is mesured
-                # in-app and printed on stdout
-                self.measure["time"] = {"method": "in-app", "output": "stdout"}
+                # If the mesure section is absent add an empty perfcounter section
                 self.measure["perfcounters"] = Option.empty()
 
         # ensures all subspaces are declared
@@ -37,6 +36,13 @@ class Configuration:
         self.space.setdefault("execflags", dict())
         self.space.setdefault("envvars", dict())
         self.space.setdefault("envcmd", dict())
+
+        # flags on off values
+        for d in self.space["compileflags"]:
+            d.setdefault("values", [True, False])
+
+        for d in self.space["execflags"]:
+            d.setdefault("values", [True, False])
 
     # TODO rename into get_id
     # Returns an id string for the configuration
