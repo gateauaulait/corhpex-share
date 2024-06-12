@@ -53,11 +53,12 @@ class Configuration:
         pattern = re.compile('[\W_]+')
         for sub, desc in config.items():
             for i,(k,v) in enumerate(desc.items()):
-                if self.space[sub][i]["values"] == [True, False]:
+                space_desc_entry = next(dim for dim in self.space[sub] if dim["name"] == k)
+                if space_desc_entry["values"] == [True, False]:
                     if v:
                         id_str = id_str + "_" + pattern.sub('', k)
-                elif "id" in self.space[sub][i]:
-                    id_str = id_str + "_" + self.space[sub][i]["id"] + str(v)
+                elif "id" in space_desc_entry:
+                    id_str = id_str + "_" + space_desc_entry["id"] + str(v)
                 else:
                     id_str = id_str + "_" + pattern.sub('', str(v))
 

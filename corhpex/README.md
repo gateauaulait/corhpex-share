@@ -8,8 +8,9 @@ You need a python3.11+ environnement with the following modules :
 - tomli
 - numpy
 - pyeasyga
+- bayesian-optimization
 
-If you plan on mesuring performance counters, we support likwid which needs to be installed and the user needs the appropriate permissions to the MSR. For more informations on how to setup likwid please see the official documentation.
+We also need likwid to access time and performance counters and the user needs the appropriate permissions to the MSR. For more informations on how to setup likwid please see the official documentation.
 
 ## Exploration configuration
 
@@ -137,6 +138,32 @@ explorer = ExhaustiveExplorer(config_file_path, custom_pruning_func)
 explorer.run()
 ```
 
+
+## Exploration strategies
+
+### Bayesian Optimization exploration
+
+Bayesian Optimization is a technique to find the maximum of a black-box function. It is often used to tune hyperparameters of machine learning algorithms.
+
+It works by selecting the best next point to explore in the black-box function using an acquisition function. Depending on the acquisition function and its parameters, the search for the maximum can be aggressive (exploitation) or more exploratory (exploration). Thus, this exploration stategy is suitable for both maximizing the black-box function and exploring its behaviour on the space. Under the hood, a surrogate model is trained and the acquisition function determins the next point that will reduce the uncertainty and thus improve the accuracy of the surrogate model.
+
+For example, the acquisition function can choose the next query point as the one which has the highest **probability of improvement** over the current maximum of the black-box function. For this **PI** acquisition a high value for the `xi` parameter (e.g. 0.3, 3) favors exploration while a low value (e.g. 0.075) favors exploitation. The **expected improvement** (**EI**) acquisition function is similar but takes into account how much improvement will result.  The `xi` parameter follows the same dynamics.
+
+This exploration strategy can be parametrized in the configuration file:
+
+``` toml
+[algo_params]
+init_points=10                      # number of random points to start with
+n_iter=10                           # number of iterations (i.e. number of points on top of the random one at the start)
+alpha=0.0001                        # tune the gaussian process regressor, use higher values for decrete parameters
+aquisition_func.kind = "ei"         # or "ucb" or 'poi'
+aquisition_func.xi = 3              # or kappa for ucb
+target = "rdtsc"                    # target metric to optimize
+target_stat = "med"                 # statistic of the metric to optimize
+seed_value = 0                      # seed value for anything random in the algorithm
+```
+
+
 ## Adding an exploration strategy
 
 You can add an exploration strategy or algorithm by making a new class that inherits from `BaseExplorer`.
@@ -162,3 +189,4 @@ An explorer can access the following member variables:
 - `_custom_env` a copy of the environnement the explorer was started id
 - `entry_points` a dictionnary of 2 entry points ("pre-bench" and "pre-exec") that contains the list of sub-spaces explored ("explo") and the hook functions to apply the parameters of thoses spaces ("hook").
 - `prune` the pruning function
+
