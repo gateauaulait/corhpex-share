@@ -28,12 +28,12 @@ def main():
     subparsers = parser.add_subparsers(dest='cmd', required=True)
 
     parser_explo = subparsers.add_parser("explo", aliases=["e", "exp"], help="Exploration of the space")
-    parser_explo.add_argument('configfile', default=os.path.dirname(__file__)+'/configs/test.toml', type=str, nargs='?',help='name of the config file to use, if none is given use "test.toml"')
+    parser_explo.add_argument('configfile', type=str, nargs=1, help='name of the config file to use, if none is given use "test.toml"')
     parser_explo.add_argument('-d', '--dirname', default=None, type=str, nargs='?',help='path of the result directory')
     parser_explo.add_argument('-f', '--force', action='store_true', help='Force the exploration')
 
     parser_aggregation = subparsers.add_parser("aggregation", aliases=["a"], help="Data aggregation")
-    parser_aggregation.add_argument('configfile', default=os.path.dirname(__file__)+'/configs/test.toml', type=str, nargs='?',help='name of the config file to use, if none is given use "test.toml"')
+    parser_aggregation.add_argument('configfile', type=str, nargs=1, help='name of the config file to use, if none is given use "test.toml"')
     parser_aggregation.add_argument('-d', '--dirname', default=None, type=str, nargs='?',help='path of the result directory')
     parser_aggregation.add_argument('-f', '--force', action='store_true', help='Force the exploration')
 
