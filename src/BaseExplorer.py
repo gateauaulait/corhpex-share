@@ -46,9 +46,6 @@ class BaseExplorer(ABC):
         else:
             self.prune = prune
 
-        # Build the thread-binding generator if needed
-        exec_cmd("cd thread-binding-generator; make; cd -")
-
         # set time_dir variant_names for all applications in all benchmarks
         self._root_exec_dir = os.getcwd()
         for b in self.config.benchmarks:
@@ -72,7 +69,10 @@ class BaseExplorer(ABC):
 
         p = "-p " if (physical) else ""
 
-        l = exec_cmd(self._root_exec_dir + "/thread-binding-generator/bindings-gen " + p + str(pkg_f) + " " + str(die_f) + " " + str(l3_f) + " " + str(smt_f))
+        dir_path = os.path.dirname(__file__)
+        l = exec_cmd(dir_path + "/../thread-binding-generator/bindings-gen " + p + str(pkg_f) + " " + str(die_f) + " " + str(l3_f) + " " + str(smt_f))
+        print(nb_threads)
+        print(l)
 
         l = l.split(" ")
         s = ""

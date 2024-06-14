@@ -1,9 +1,16 @@
 import tomli
 import re
+import os
 from option import Option, Some, Nothing
+from utils import exec_cmd
 
 class Configuration:
     def __init__(self, config_file, force=False, res_dir=None):
+
+        # Compile thread-binding-generator if needed
+        dir_path = os.path.dirname(__file__)
+        exec_cmd("cd " + dir_path + "/../thread-binding-generator; make; cd -")
+
         with open(config_file, "rb") as f:
             config = tomli.load(f)
             self.benchmarks = config["benchmarks"]

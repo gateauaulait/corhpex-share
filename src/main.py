@@ -39,9 +39,9 @@ def main():
 
     args = parser.parse_args()
 
-    #explorer = ExhaustiveExplorer(args.configfile, custom_pruning, args.force, args.dirname)
-    #explorer = GAExplorer(args.configfile, custom_pruning, args.force, args.dirname)
-    explorer = BayesianOptimExplorer(args.configfile, custom_pruning, args.force, args.dirname)
+    #explorer = ExhaustiveExplorer(args.configfile[0], custom_pruning, args.force, args.dirname)
+    #explorer = GAExplorer(args.configfile[0], custom_pruning, args.force, args.dirname)
+    explorer = BayesianOptimExplorer(args.configfile[0], custom_pruning, args.force, args.dirname)
 
     if (args.cmd == "explo" or args.cmd == "exp" or args.cmd == "e"):
         explorer.run()
