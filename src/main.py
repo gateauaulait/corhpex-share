@@ -31,17 +31,16 @@ def main():
     parser_explo.add_argument('configfile', type=str, nargs=1, help='name of the config file to use, if none is given use "test.toml"')
     parser_explo.add_argument('-d', '--dirname', default=None, type=str, nargs='?',help='path of the result directory')
     parser_explo.add_argument('-f', '--force', action='store_true', help='Force the exploration')
-
-    parser_aggregation = subparsers.add_parser("aggregation", aliases=["a"], help="Data aggregation")
-    parser_aggregation.add_argument('configfile', type=str, nargs=1, help='name of the config file to use, if none is given use "test.toml"')
-    parser_aggregation.add_argument('-d', '--dirname', default=None, type=str, nargs='?',help='path of the result directory')
-    parser_aggregation.add_argument('-f', '--force', action='store_true', help='Force the exploration')
+    parser_explo.add_argument('-a', '--algo', choices=["all", "ga", "bo"], default="all", help='Force the exploration')
 
     args = parser.parse_args()
 
-    #explorer = ExhaustiveExplorer(args.configfile[0], custom_pruning, args.force, args.dirname)
-    #explorer = GAExplorer(args.configfile[0], custom_pruning, args.force, args.dirname)
-    explorer = BayesianOptimExplorer(args.configfile[0], custom_pruning, args.force, args.dirname)
+    if args.algo == "all":
+        explorer = ExhaustiveExplorer(args.configfile[0], custom_pruning, args.force, args.dirname)
+    if args.algo == "ga":
+            explorer = GAExplorer(args.configfile[0], custom_pruning, args.force, args.dirname)
+    if args.algo == "bo":
+            explorer = BayesianOptimExplorer(args.configfile[0], custom_pruning, args.force, args.dirname)
 
     if (args.cmd == "explo" or args.cmd == "exp" or args.cmd == "e"):
         explorer.run()
