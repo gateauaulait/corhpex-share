@@ -26,17 +26,25 @@ class LikwidAggregator:
         value = 0
         pattern_section = re.compile("(" + section +").*")
         with open(filename, "r") as f:
-            for i,fld in enumerate(field):
-                in_section = False
-                for l in f:
-                    if in_section:
-                        fields = l.split(",")
+            in_section = False
+            # for each line of the file
+            for l in f:
+                # if we are in the section
+                if in_section:
+                    # split the columns
+                    fields = l.split(",")
+                    # for each field
+                    for i,fld in enumerate(field):
+                        if fields[0] == "TABLE":
+                            in_section= False
+                        # if the first column is the current field
                         if fld == fields[0]:
-                            value += float(fields[col[i]])
-                            break;
-                    else:
-                        if pattern_section.search(l):
-                            in_section = True
+                            # add the value of the field and move on to the next field
+                            if fields[col[i]].isprintable():
+                                value += float(fields[col[i]])
+                else:
+                    if pattern_section.search(l):
+                        in_section = True
 
         return value
 
