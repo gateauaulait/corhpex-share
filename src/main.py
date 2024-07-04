@@ -34,6 +34,8 @@ def main():
     parser_explo.add_argument('-a', '--algo', choices=["all", "ga", "bo"], default="all", help='Force the exploration')
 
     args = parser.parse_args()
+    if args.dirname:
+        args.dirname = os.path.abspath(args.dirname)
 
     if args.algo == "all":
         explorer = ExhaustiveExplorer(args.configfile[0], custom_pruning, args.force, args.dirname)

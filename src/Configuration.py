@@ -19,7 +19,7 @@ class Configuration:
             self.space = config["exploration-space"]
             self.algo_params = config.get("algo_params", {})
             # directory to hold measurement
-            self.res_dir = config.get("res_dir", "res_dir/")
+            self.res_dir = os.path.abspath(config.get("res_dir", "res_dir/"))
             if res_dir != None:
                 self.res_dir = res_dir
             self.force = force

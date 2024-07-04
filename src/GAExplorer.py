@@ -101,7 +101,7 @@ class GAExplorer(BaseExplorer):
         # full metrics for recording
         measures = self.aggregator.get_app_config_metric(b, a, config)[0]
         
-        with open(self._root_exec_dir + "/" + self.config.res_dir +'/ga_explo_' + measure_id + '_' + self.config.algo_params["target_stat"] +'.csv', 'a') as f:
+        with open(self.config.res_dir +'/ga_explo_' + measure_id + '_' + self.config.algo_params["target_stat"] +'.csv', 'a') as f:
             line = "GA: " + str(vector) + " " + id_str + " " + str(score) + " " + str(measures)
             f.write(line + '\n')
             print("measure:", line)

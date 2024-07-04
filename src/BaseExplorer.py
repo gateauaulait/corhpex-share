@@ -23,7 +23,7 @@ class BaseExplorer(ABC):
     # param prune: a pruning function that returns True if the configuration should be pruned and False other wise
     def __init__(self, config_file, prune=None, force=False, res_dir=None):
 
-        self.config = Configuration(config_file)
+        self.config = Configuration(config_file, force, res_dir)
 
         self._custom_env = os.environ.copy()
 
@@ -50,7 +50,7 @@ class BaseExplorer(ABC):
         self._root_exec_dir = os.getcwd()
         for b in self.config.benchmarks:
             for a in b["apps"]:
-                a["time_dir"] =  self._root_exec_dir + "/" + self.config.res_dir + "/" + b["id"] + "/" + a["id"];
+                a["time_dir"] = self.config.res_dir + "/" + b["id"] + "/" + a["id"];
                 exec_cmd("mkdir -p " + b["root_dir"] + "/" + a["root_dir"])
                 exec_cmd("mkdir -p " + a["time_dir"])
                 if a.get("variant_names") == None:
@@ -127,7 +127,7 @@ class BaseExplorer(ABC):
         id_str = self.config.get_conf(config)
 
         # dump the config id
-        with open(self._root_exec_dir + "/" + self.config.res_dir + "/configs.txt", 'a+') as f:
+        with open(self.config.res_dir + "/configs.txt", 'a+') as f:
             f.write(id_str + "\n")
 
         # Build the flag string
