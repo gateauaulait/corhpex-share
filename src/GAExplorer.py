@@ -44,6 +44,11 @@ class GAExplorer(BaseExplorer):
         if len(self.config.benchmarks) != 1 or len(self.config.benchmarks[0]["apps"]) != 1 or len(self.config.benchmarks[0]["apps"][0]["variants"]) != 1:
             sys.exit("The GA only supports executing a single application with a single variant.")
 
+    def _mutate(self, individual):
+        """Pick a random valid value for a random index in an individual"""
+        mutate_index = random.randrange(len(individual))
+        individual[mutate_index] = random.randrange(self.size_parameters[mutate_index])
+
 
     # Get the score (i.e. any group of counters) of a configuration applied to an app
     # Note that ba is a dictionnary:
@@ -199,6 +204,7 @@ class GAExplorer(BaseExplorer):
                                    
         ga.create_individual = self._create_individual 
         ga.fitness_function = self._training_GA
+        ga.mutate_function = self._mutate
         ga.run()
         print (ga.best_individual())  
     
