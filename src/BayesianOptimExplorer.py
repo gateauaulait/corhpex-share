@@ -198,7 +198,7 @@ class BayesianOptimExplorer(BaseExplorer):
             bo.set_gp_params(alpha=params["alpha"])
 
         if "acquisition_func" in params:
-            acquisition_function = UtilityFunction(params["acquisition_func"])
+            acquisition_function = UtilityFunction(**params["acquisition_func"])
             bo.maximize(init_points=params["init_points"], n_iter=params["n_iter"], acquisition_function=acquisition_function)
         else:
             bo.maximize(init_points=params["init_points"], n_iter=params["n_iter"])
