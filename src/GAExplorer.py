@@ -1,9 +1,8 @@
-from BaseExplorer import BaseExplorer
-from space_iterators import MultiSpaceExplorer, BenchAppIter
-from LikwidAggregator import LikwidAggregator
+from .BaseExplorer import BaseExplorer
+from .space_iterators import MultiSpaceExplorer, BenchAppIter
+from .utils import exec_cmd
 import os
 import random
-from utils import exec_cmd
 import subprocess
 import numpy as np
 from pyeasyga import pyeasyga
@@ -13,15 +12,15 @@ import sys
 class GAExplorer(BaseExplorer):
 
     def __init__(self, *args, **kwargs):
+        # See BaseExplorer.__init__()
+        super().__init__(*args, **kwargs)
+
         # necessary to reset compiler settings
         self.dir_pre_bench_hook = ""
         
         # separator used to construct id for configurations
         # feel free to improve this part
         self.sep = "::"
-
-        # The GA needs an aggregator to get the mesures on the fly
-        self.aggregator = LikwidAggregator(args[0])
 
         # these arrays enable defining a configuration from a vector of configuration
         # size_parameters parameterizes the size of the search space
@@ -33,9 +32,6 @@ class GAExplorer(BaseExplorer):
         # used by the GA to call the evaluation on a target ba
         self.bench = ""
 
-        # See BaseExplorer.__init__()
-        super().__init__(*args, **kwargs)
-
         # Set default GA parameteres if none are provided in the config
         if self.config.algo_params == {}:
             self.config.algo_params = {"pop":300, "gen": 45, "cross": 0.9, "mut":0.1, "target": "rdtsc"}
@@ -45,16 +41,26 @@ class GAExplorer(BaseExplorer):
             sys.exit("The GA only supports executing a single application with a single variant.")
 
     def _mutate(self, individual):
-        """Pick a random valid value for a random index in an individual"""
+        """
+        Mutate and individual by picking a random valid value for a random index
+
+        Args:
+            individual (list[int]): The individual to mutate
+        """
         mutate_index = random.randrange(len(individual))
         individual[mutate_index] = random.randrange(self.size_parameters[mutate_index])
 
-
-    # Get the score (i.e. any group of counters) of a configuration applied to an app
-    # Note that ba is a dictionnary:
-    # - the key "b" gives access to the benchmark info
-    # - the key "a" gives access to the app info
     def _get_score(self, ba, vector):
+        """
+        Get the score (i.e. any group of counters) of a configuration applied to an app
+
+        Args:
+            ba (dict[str, dict]): The benchmark info and application
+            vector: The individual (i.e. configuration as an int list) to evaluate
+
+        Returns:
+            float: The score of the vector individual
+        """
         b = ba["b"]
         a = ba["a"]
 
@@ -64,6 +70,7 @@ class GAExplorer(BaseExplorer):
         # prune invalid configurations
         # return a score of 0 for invalid configurations
         if self.prune(config, "pre_exec"):
+            print("Prunned configuration - this is unexpected")
             return 0
 
         if not self.aggregator.app_config_was_evaluated(b, a, config):
@@ -90,22 +97,21 @@ class GAExplorer(BaseExplorer):
             self._evaluate(config, ba)
             self._reset_envcmd()
 
-
         id_str = self.config.get_conf(config)
 
         # metric statistics for the score
+        # uses the custom jpdc implementation
         measures = self.aggregator.get_app_config_metric_stat(b, a, config)[0]
+
+        # since all values are the same, we should get consistent results even if we collect energy
+        # higher is better score, thus normalization
         measure_id = self.config.algo_params["target"]
         fn_id = self.config.res_stats.index(self.config.algo_params["target_stat"])
 
-        # higher is better score
         score = float(measures[measure_id][fn_id])
         if score > 0:
             score = 1/score
 
-        # full metrics for recording
-        measures = self.aggregator.get_app_config_metric(b, a, config)[0]
-        
         with open(self.config.res_dir +'/ga_explo_' + measure_id + '_' + self.config.algo_params["target_stat"] +'.csv', 'a') as f:
             line = "GA: " + str(vector) + " " + id_str + " " + str(score) + " " + str(measures)
             f.write(line + '\n')
@@ -113,12 +119,26 @@ class GAExplorer(BaseExplorer):
 
         return score
 
-    # takes a vector and reruns a configuration
-    # configuration is a dict of dict
     def _vec2conf(self, vector):
+        """
+        Convert a individual (vector) into a CORHPEX configuration
+
+        This transformation is a bijection: there is a 1-1 association between vectors and CORHPEX configurations
+
+        Args:
+            vector (list[int]): The individual vector
+
+        Returns:
+            dict[str, dict]: The CORHPEX configuration associated to the vector
+        """
         assert len(vector) == len(self.name_paramters)
         
-        conf = {}
+        conf = {
+            "compileflags": dict(),
+            "execflags": dict(),
+            "envvars": dict(),
+            "envcmd": dict()
+        }
         for n,param_name in enumerate(self.name_paramters):
             k = param_name.split(self.sep)[0]
             val = param_name.split(self.sep)[1]
@@ -144,14 +164,16 @@ class GAExplorer(BaseExplorer):
                         conf[k][val] = false_true[vector[n]]
         return(conf)
 
-    # calculate array space_size and associated space_desc
-    # each dimension of space_size describes the size of the dimension of each parameter in the space
-    # each dimension of space_desc describes the parameter the associated dimension of space_size
     def _parametrize_space(self):
+        """
+        Compute the arrays `space_size` and `space_desc`
+
+        Each dimension of `space_size` describes the size of the dimension of each parameter in the space
+        Each dimension of `space_desc` describes the parameter the associated dimension of `space_size`
+        """
         # self.config.space 
         # 4 dictionaries: execflags, compileflags, envvars, envcmd
         for k in self.config.space.keys():
-
             # each dict contains a list of parameters
             # each param is a dict
             for param in self.config.space[k]:
@@ -176,8 +198,13 @@ class GAExplorer(BaseExplorer):
         print("GA:", "space description:", self.name_paramters)
         assert(len(self.size_parameters) == len(self.name_paramters))
 
-    # generate random vectors respecting the search space size
     def _generate_random_vectors(self):
+        """
+        Generate random vectors respecting the search space size
+
+        Returns:
+            list[int]: A random vector individual
+        """
         r = []
         for n,v in enumerate(self.size_parameters):
             r.append(random.randint(0, v - 1))       
@@ -185,31 +212,19 @@ class GAExplorer(BaseExplorer):
         return r
 
     def _create_individual(self, data):
+        """
+        Generate random individual
+
+        Returns:
+            list[int]: A random vector individual
+        """
         return self._generate_random_vectors()
 
-    def _training_GA(self, vector,data):    
-        r = self._get_score(self.bench, vector)
-        return r    
- 
-    def _explore_GA(self, ps,gen,cross,mut):
-        
-        
-        ga = pyeasyga.GeneticAlgorithm([],
-                                   population_size=ps,
-                                   generations=gen,
-                                   crossover_probability=cross,
-                                   mutation_probability=mut,
-                                   #elitism=True,
-                                   maximise_fitness=True)
-                                   
-        ga.create_individual = self._create_individual 
-        ga.fitness_function = self._training_GA
-        ga.mutate_function = self._mutate
-        ga.run()
-        print (ga.best_individual())  
-    
- 
-    def _explore(self, action_func, bench_iter, apply_config=True):
+    def _explore(self):
+        """
+        Run the GA exploration
+        """
+
         # Set to ensure consistent/deterministic executions
         seed_value = 0
         os.environ['PYTHONHASHSEED']=str(seed_value)
@@ -217,7 +232,6 @@ class GAExplorer(BaseExplorer):
         random.seed(seed_value)
 
         # pre_bench env directory to be used when applying compiler settings
-        # Can this be replaced by self._root_exec_dir ? -it works but not sure if correct way
         self.dir_pre_bench_hook = os.getcwd()
         # self.dir_pre_bench_hook = self._root_exec_dir
         
@@ -226,30 +240,35 @@ class GAExplorer(BaseExplorer):
         
         self._generate_random_vectors()
 
-        for ba in bench_iter():
-            # some checks just to ensure everything runs 
-            # fpstore fpcomp compileflags compileflags compileflags OMP_NUM_THREADS SPX_PIN_POLICY SPX_HT prefetch freq
-            #self._get_score(ba, [1,0,1,0,0,1,1,0,0,0,0,0,0,0,0,0,0])
-            #self._get_score(ba, [1,1,1,0,0,1,1,0,0,1,0,0,0,0,0,0,0])
-            # random generated vectors
-            #self._get_score(ba, self._generate_random_vectors())
-            #self._get_score(ba, self._generate_random_vectors())
-
-            # GA time 
+        for ba in BenchAppIter(self.config.benchmarks):
             self.bench = ba
-            self._explore_GA(self.config.algo_params["pop"],self.config.algo_params["gen"],self.config.algo_params["cross"],self.config.algo_params["mut"])
+            ga = pyeasyga.GeneticAlgorithm([],
+                                   population_size=self.config.algo_params["pop"],
+                                   generations=self.config.algo_params["gen"],
+                                   crossover_probability=self.config.algo_params["cross"],
+                                   mutation_probability=self.config.algo_params["mut"],
+                                   #elitism=True,
+                                   maximise_fitness=True)
+
+            ga.create_individual = self._create_individual
+            ga.fitness_function = lambda vector, data: self._get_score(self.bench, vector)
+            ga.mutate_function = self._mutate
+            ga.run()
+            print (ga.best_individual())
 
         # Dump statistics to CSV
         perfcounters = self.config.measure["perfcounters"].unwrap()
         for m in perfcounters["metrics"]:
             self.aggregator.write_stats_to_csv(m["id"])
 
-        # TODO: for consistency check return with exhaustive search
-        return
-        
-    # Test on dahu: python3.9 corhpex/main.py e corhpex/configs/xp-ga.toml
-    # Run the exploration
+
     def run(self, ga_params={}):
+        """
+        Run an exploration with given parameters if any
+
+        Args:
+            ga_params (optional dict[str, any]): parameter override to run the GA
+        """
         if ga_params != {}:
             self.config.algo_params = ga_params
-        self._explore(self._evaluate, lambda : BenchAppIter(self.config.benchmarks))
+        self._explore()

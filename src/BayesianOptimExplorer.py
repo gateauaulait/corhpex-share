@@ -1,9 +1,8 @@
-from BaseExplorer import BaseExplorer
-from space_iterators import MultiSpaceExplorer, BenchAppIter
-from LikwidAggregator import LikwidAggregator
+from .BaseExplorer import BaseExplorer
+from .space_iterators import MultiSpaceExplorer, BenchAppIter
+from .utils import exec_cmd
 import os
 import random
-from utils import exec_cmd
 import subprocess
 import numpy as np
 from bayes_opt import BayesianOptimization
@@ -14,15 +13,15 @@ import sys
 class BayesianOptimExplorer(BaseExplorer):
 
     def __init__(self, *args, **kwargs):
+        # See BaseExplorer.__init__()
+        super().__init__(*args, **kwargs)
+
         # necessary to reset compiler settings
         self.dir_pre_bench_hook = ""
         
         # separator used to construct id for configurations
         # feel free to improve this part
         self.sep = "::"
-
-        # The GA needs an aggregator to get the mesures on the fly
-        self.aggregator = LikwidAggregator(args[0])
 
         # these arrays enable defining a configuration from a vector of configuration
         # size_parameters parameterizes the size of the search space
@@ -33,9 +32,6 @@ class BayesianOptimExplorer(BaseExplorer):
         
         # used by the GA to call the evaluation on a target ba
         self.bench = ""
-
-        # See BaseExplorer.__init__()
-        super().__init__(*args, **kwargs)
 
         # Set default BO parameteres if none are provided in the config
         if self.config.algo_params == {}:
@@ -52,11 +48,17 @@ class BayesianOptimExplorer(BaseExplorer):
             sys.exit("The BO only supports executing a single application with a single variant.")
 
 
-    # Get the score (i.e. any group of counters) of a configuration applied to an app
-    # Note that ba is a dictionnary:
-    # - the key "b" gives access to the benchmark info
-    # - the key "a" gives access to the app info
     def _get_score(self, ba, **flat_config):
+        """
+        Get the score (i.e. any group of counters) of a configuration applied to an app
+
+        Args:
+            ba (dict[str, dict]): The benchmark info and application
+            flat_config (dict): The configuration to evaluate  in a flat format
+
+        Returns:
+            float: The score of the configuration
+        """
         b = ba["b"]
         a = ba["a"]
 
@@ -115,20 +117,33 @@ class BayesianOptimExplorer(BaseExplorer):
 
         return score
 
-    # take flat configuration and return a configuration with subspaces
-    # configuration is a dict of dict
     def _flat2conf(self, flat_config):
+        """
+        Convert a flat configuration into a CORHPEX configuration
+
+        This transformation is a bijection: there is a 1-1 association between vectors and CORHPEX configurations
+
+        Args:
+            flat_config (dict): The flat format configuration
+
+        Returns:
+            dict[str, dict]: The CORHPEX configuration associated to the vector
+        """
         assert len(flat_config) == len(self.name_parameters)
         
-        conf = {}
+        conf = {
+            "compileflags": dict(),
+            "execflags": dict(),
+            "envvars": dict(),
+            "envcmd": dict()
+        }
+
         for key,value_idx in flat_config.items():
             subspace = key.split(self.sep)[0]
             dim = key.split(self.sep)[1]
             # subspace - execflags, compileflags, envvars, envcmd
             # dim - dimension: name of the parameter eg OMP_NUM_THREADS or SPX_HT
-            if subspace not in conf.keys():
-                conf[subspace] = {}
-            
+
             # get value using vector with k / val in search space
             # list containing dict. One of them contains val as value under the key name
             subspace_dims = self.config.space[subspace]
@@ -145,10 +160,13 @@ class BayesianOptimExplorer(BaseExplorer):
                         conf[subspace][dim] = bool(round(value_idx))
         return(conf)
 
-    # calculate array space_size and associated space_desc
-    # each dimension of space_size describes the size of the dimension of each parameter in the space
-    # each dimension of space_desc describes the parameter the associated dimension of space_size
     def _parametrize_space(self):
+        """
+        Compute the arrays `space_size` and `space_desc`
+
+        Each dimension of `space_size` describes the size of the dimension of each parameter in the space
+        Each dimension of `space_desc` describes the parameter the associated dimension of `space_size`
+        """
         # self.config.space 
         # 4 dictionaries: execflags, compileflags, envvars, envcmd
         for k in self.config.space.keys():
@@ -177,16 +195,18 @@ class BayesianOptimExplorer(BaseExplorer):
         print("BO", "space description:", self.name_parameters)
         assert(len(self.size_parameters) == len(self.name_parameters))
 
-    # Utility function to currify the _get_score function with a given ba
-    def _get_app_score(self, ba):
-        return lambda **x: self._get_score(ba, **x)
-
     def _explore_BO(self, ba):
+        """
+        Run the BO exploration for the given application
+
+        Args:
+            ba (dict[str, dict]): The benchmark info and the application
+        """
 
         space = dict(zip(self.name_parameters, [(0, s-1) for s in self.size_parameters]))
 
         bo = BayesianOptimization(
-            f=self._get_app_score(ba),
+            f=lambda **x: self._get_score(ba, **x),
             pbounds=space,
             verbose=0,
             random_state=self.config.algo_params["seed_value"],
@@ -203,8 +223,10 @@ class BayesianOptimExplorer(BaseExplorer):
         else:
             bo.maximize(init_points=params["init_points"], n_iter=params["n_iter"])
 
- 
-    def _explore(self, action_func, bench_iter, apply_config=True):
+    def _explore(self):
+        """
+        Run the BO
+        """
         # Set to ensure consistent/deterministic executions
         seed_value = self.config.algo_params["seed_value"]
         os.environ['PYTHONHASHSEED']=str(seed_value)
@@ -219,7 +241,7 @@ class BayesianOptimExplorer(BaseExplorer):
         # enable to transform vectors to configurations
         self._parametrize_space()
 
-        for ba in bench_iter():
+        for ba in BenchAppIter(self.config.benchmarks):
             self._explore_BO(ba)
 
         # Dump statistics to CSV
@@ -229,9 +251,13 @@ class BayesianOptimExplorer(BaseExplorer):
 
         return
         
-    # Test on dahu: python3.9 corhpex/main.py e corhpex/configs/xp-ga.toml
-    # Run the exploration
     def run(self, bo_params={}):
+        """
+        Run an exploration with given parameters if any
+
+        Args:
+            bo_params (optional dict[str, any]): parameter override to run the BO
+        """
         if bo_params != {}:
             self.config.algo_params = bo_params
-        self._explore(self._evaluate, lambda : BenchAppIter(self.config.benchmarks))
+        self._explore()

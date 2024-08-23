@@ -1,8 +1,8 @@
 import tomli
 import re
 import os
-from option import Option, Some, Nothing
-from utils import exec_cmd
+from .option import Option, Some, Nothing
+from .utils import exec_cmd
 
 class Configuration:
     def __init__(self, config_file, force=False, res_dir=None):
@@ -17,6 +17,7 @@ class Configuration:
             self.meta_rep = config["meta_rep"]
             self.res_stats = config["stat_fn"]
             self.space = config["exploration-space"]
+            self.algo = config["algo"]
             self.algo_params = config.get("algo_params", {})
             # directory to hold measurement
             self.res_dir = os.path.abspath(config.get("res_dir", "res_dir/"))
@@ -52,14 +53,21 @@ class Configuration:
             d.setdefault("values", [True, False])
 
     # TODO rename into get_id
-    # Returns an id string for the configuration
-    # param config: the configuration to use, a dictionary of dictionaries
-    # param ba: useless (only here for consistency)
     def get_conf(self, config, ba=None):
+        """
+        Returns an id string for the configuration
+
+        Args:
+            config dict[str, dict]: the configuration to use
+            ba: useless (only here for consistency)
+
+        Returns:
+            str: the configuration identifer
+        """
         id_str = ""
         pattern = re.compile('[\W_]+')
-        for sub, desc in config.items():
-            for i,(k,v) in enumerate(desc.items()):
+        for sub, desc in sorted(config.items()):
+            for i,(k,v) in enumerate(sorted(desc.items())):
                 space_desc_entry = next(dim for dim in self.space[sub] if dim["name"] == k)
                 if space_desc_entry["values"] == [True, False]:
                     if v:

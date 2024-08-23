@@ -2,7 +2,7 @@ from functools import reduce
 import os
 import operator
 import itertools
-from utils import exec_cmd
+from .utils import exec_cmd
 
 class SubSpaceExplorer:
 

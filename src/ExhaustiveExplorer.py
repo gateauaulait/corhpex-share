@@ -1,5 +1,5 @@
-from BaseExplorer import BaseExplorer
-from space_iterators import MultiSpaceExplorer, BenchAppIter
+from .BaseExplorer import BaseExplorer
+from .space_iterators import MultiSpaceExplorer, BenchAppIter
 
 class ExhaustiveExplorer(BaseExplorer):
 
@@ -7,6 +7,17 @@ class ExhaustiveExplorer(BaseExplorer):
         super().__init__(*args, **kwargs)
 
     def _explore(self, action_func, bench_iter, apply_config=True):
+        """
+        Run the exhaustive exploration
+
+        Iterate over the design space and the applications and execute the action function for
+        all combinations.
+
+        Args:
+            action_func (fn): The function to execute for each design on each application
+            bench_iter (Iterator): The applications iterator
+            apply_config (bool): if true apply the configuration, else don't apply (to save time)
+        """
         results = {}
         # Explore a subspace before iterating over the benchmarks and applications
         mse_pre_bench = MultiSpaceExplorer(self.config.space, self.entry_points["pre_bench"]["explo"])
@@ -35,20 +46,18 @@ class ExhaustiveExplorer(BaseExplorer):
                         for i,h in enumerate(self.entry_points["pre_exec"]["hook"]):
                             h(config_pre_bench, changes[i])
 
-                    r = action_func(config, ba)
-                    if r != None:
-                        if ba != None:
-                            results[ba["b"]["id"]+"_"+ba["a"]["id"]] += [r]
-                        else:
-                            results["ba"] += [r]
+
+                    if not self.aggregator.app_config_was_evaluated(ba["b"], ba["a"], config):
+                        action_func(config, ba)
+                    else:
+                        self.aggregator.get_app_config_metric_stat(ba["b"], ba["a"], config)[0]
 
         # Clean up environment
         if apply_config:
             self._reset_envcmd()
 
-        return results
-
-    # Run the space exploration for all applications
     def run(self):
+        """
+        Run an exploration for all applications
+        """
         self._explore(self._evaluate, lambda : BenchAppIter(self.config.benchmarks))
-

@@ -4,12 +4,11 @@ import re
 from functools import reduce
 import operator
 import itertools
-from space_iterators import MultiSpaceExplorer, BenchAppIter
-from utils import exec_cmd
+from .space_iterators import MultiSpaceExplorer, BenchAppIter
+from .utils import exec_cmd
 import glob
 import pandas as pd
 from abc import ABC, abstractmethod
-from Configuration import Configuration
 
 stat_fn = dict()
 stat_fn["med"] = np.median
@@ -18,12 +17,17 @@ stat_fn["mean"] = np.mean
 
 class BaseExplorer(ABC):
 
-    # Initialize the exploration by reading the configuration file
-    # param config_file: the path the configuration file
-    # param prune: a pruning function that returns True if the configuration should be pruned and False other wise
-    def __init__(self, config_file, prune=None, force=False, res_dir=None):
+    def __init__(self, aggregator, configuration, prune=None):
+        """
+        Initialize the exploration by reading the configuration file
 
-        self.config = Configuration(config_file, force, res_dir)
+        Args:
+            configuration (Configuration): the path the configuration file
+            prune (fn): a pruning function that returns True if the configuration should be pruned and False other wise
+        """
+
+        self.config = configuration
+        self.aggregator = aggregator
 
         self._custom_env = os.environ.copy()
 
@@ -57,11 +61,17 @@ class BaseExplorer(ABC):
                     a["variant_names"] = ["default"]
 
 
-    # Create the list of HWthreads to use given
-    # @param nb_threads: the number of OMP threads
-    # @param physical: true if physical indices should be used false otherwise (logical indices)
-    # @return string of comma separated PU index
     def _get_pinning(self, nb_threads, physical=False):
+        """
+        Create the list of HWthreads to use given
+
+        Args:
+            nb_threads (int): The number of OMP threads
+            physical (bool): True if physical indices should be used false otherwise (logical indices)
+
+        Returns:
+            str: A comma separated list of PU index
+        """
         pkg_f = self._custom_env.get("SPX_PKG_FIRST", 1)
         die_f = self._custom_env.get("SPX_DIE_FIRST", 1)
         l3_f = self._custom_env.get("SPX_L3_FIRST", 1)
@@ -81,11 +91,16 @@ class BaseExplorer(ABC):
         return s.rstrip(",")
 
 
-    # Instrument a command to measure metrics
-    # @param cmd: the command to instrument
-    # @param config: the current configuration
-    # @param i: the id of the execution
     def _instrument_cmd(self, cmd, config):
+        """
+        Instrument a command and execute it to measure metrics
+
+        Args:
+            cmd (str): The command to instrument
+            config (dict): The current configuration
+            i (int): The id of the execution
+        """
+
         # get thread binding policy
         nb_threads = int(self._custom_env.get("OMP_NUM_THREADS", 1))
 
@@ -109,6 +124,14 @@ class BaseExplorer(ABC):
 
     # Cleanup measure files
     def _handle_measures(self, a, v, id_str):
+        """
+        Cleanup measure files
+
+        Args:
+            a (dict): The application
+            v (int): The index of the variant
+            id_str (str): The configuration identifier string
+        """
         # Move the likwid files to the correct location with an appropiate name that reflects the configuration
         if self.config.measure["perfcounters"].is_some():
             perfcounters = self.config.measure["perfcounters"].unwrap()
@@ -117,10 +140,15 @@ class BaseExplorer(ABC):
                     filename = "likwid_" + g + "_" + str(i) + "_" + a["id"] + "_" + a["variant_names"][v] + "_" + id_str + ".csv"
                     exec_cmd("mv likwid_" + g + "_" + str(i) + ".csv " + a["time_dir"] + "/" + filename)
 
-    # Evaluate the application for each input variant
-    # @param config: the configuration to use, a dictionary of dictionaries
-    # @param ba: the benchmark info and application to execute
     def _evaluate(self, config, ba):
+        """
+        Evaluate the application for each input variant
+
+        Args:
+            config (dict[str, dict]): The configuration to use
+            ba (dict[str, dict]): The benchmark info and application to execute
+        """
+
         a = ba["a"]
 
         # Build the id string
@@ -151,10 +179,15 @@ class BaseExplorer(ABC):
             # Move mesure to their correct location
             self._handle_measures(a, i, id_str)
 
-    # Compile the benchmark
-    # param config: the configuration to use, a dictionary of dictionaries
-    # param changes: an array of bool telling which compile flags have changed since last compilation
     def _compile(self, config, changes):
+        """
+        Compile the benchmark
+
+        Args:
+            config (dict[str, dict]): The configuration to use
+            changes list[bool]: Indicate which compile flags have changed since last compilation
+        """
+
         if not reduce(operator.or_, changes, False) and config["compileflags"]:
             return
         saved_cwd = []
@@ -191,16 +224,33 @@ class BaseExplorer(ABC):
             os.chdir(saved_cwd.pop())
 
     def _set_envvars(self, config, changes):
+        """
+        Set environnement variables
+
+        Args:
+            config (dict[str, dict]): The configuration to use
+            changes list[bool]: Indicate which compile flags have changed since last compilation
+        """
         for i,(k,v) in enumerate(config["envvars"].items()):
             if changes[i]:
                 self._custom_env |= {k: str(v)}
 
     def _exec_envcmd(self, config, changes):
+        """
+        Set environnement parameters through commands
+
+        Args:
+            config (dict[str, dict]): The configuration to use
+            changes list[bool]: Indicate which compile flags have changed since last compilation
+        """
         for i,(k,v) in enumerate(config["envcmd"].items()):
             if changes[i]:
                 exec_cmd(k + " " + str(v), self._custom_env)
 
     def _reset_envcmd(self):
+        """
+        Reset environnement parameters through commands
+        """
         for cmd in self.config.space["envcmd"]:
             exec_cmd(cmd["name"] + " " + str(cmd["reset"]), self._custom_env)
 
