@@ -8,6 +8,8 @@ import numpy as np
 from bayes_opt import BayesianOptimization
 from bayes_opt import UtilityFunction
 import sys
+import smt.surrogate_models as smtsm
+import pickle
 
 
 class BayesianOptimExplorer(BaseExplorer):
@@ -42,6 +44,10 @@ class BayesianOptimExplorer(BaseExplorer):
                 "target_stat": "med",
                 "seed_value": 0
             }
+
+
+        # Default surrogate model id (corrected right before exploration)
+        self.sm_id = "GPR_matern52"
 
         # Check the configuration to fail early
         if len(self.config.benchmarks) != 1 or len(self.config.benchmarks[0]["apps"]) != 1 or len(self.config.benchmarks[0]["apps"][0]["variants"]) != 1:
@@ -110,7 +116,7 @@ class BayesianOptimExplorer(BaseExplorer):
         # full metrics for recording
         measures = self.aggregator.get_app_config_metric(b, a, config)[0]
         
-        with open(self.config.res_dir +'/bo_explo_' + measure_id + '_' + self.config.algo_params["target_stat"] +'.csv', 'a') as f:
+        with open(self.config.res_dir +'/bo_explo_' + self.sm_id + "_" + measure_id + '_' + self.config.algo_params["target_stat"] +'.csv', 'a') as f:
             line = "BO " + str([round(v) for v in flat_config.values()]) + " " + id_str + " " + str(score) + " " + str(measures)
             f.write(line + '\n')
             print("measure:", line)
@@ -214,14 +220,33 @@ class BayesianOptimExplorer(BaseExplorer):
 
         params = self.config.algo_params
 
-        if "alpha" in params:
-            bo.set_gp_params(alpha=params["alpha"])
+        # Change the gaussian process model for an SMT model if it is specified in the configuration
+        # In any case update the model id to refect the model used and its parameters
+        if "gp" in self.config.algo_params.keys():
+            bo._gp = SMTAdapter(params["gp"]["model"], **params["gp"]["params"])
+            self.sm_id = params["gp"]["model"]
+            for k,v in params["gp"]["params"].items():
+                p = str(v)
+                p = p.strip("[]").replace(",", "")
+                self.sm_id = self.sm_id + "_" + k + str(v)
+        else:
+            if "alpha" in params:
+                bo.set_gp_params(alpha=params["alpha"])
+                self.sm_id = self.sm_id + "_alpha" + str(params["alpha"])
 
+        # Run the BO
         if "acquisition_func" in params:
             acquisition_function = UtilityFunction(**params["acquisition_func"])
             bo.maximize(init_points=params["init_points"], n_iter=params["n_iter"], acquisition_function=acquisition_function)
         else:
             bo.maximize(init_points=params["init_points"], n_iter=params["n_iter"])
+
+        # If the save option is on save the model with pickle
+        if self.config.algo_params.get("save", False):
+            filename = ba["b"]["id"] + "_" + ba["a"]["id"] + "_" + self.sm_id + ".pkl"
+            with open(filename, "wb") as f:
+                pickle.dump(bo._gp, f)
+
 
     def _explore(self):
         """
@@ -261,3 +286,94 @@ class BayesianOptimExplorer(BaseExplorer):
         if bo_params != {}:
             self.config.algo_params = bo_params
         self._explore()
+
+
+class SMTAdapter():
+    """
+    Wrapper class for gaussian process surrogate models for the Surrogate Model Toolbox (SMT) to use in BayesianOptimization
+    Mimics the scikitlearn interface
+
+    Attributes:
+        surrogate_model: the model object from SMT
+        X_train_: features for training
+        y_train_: labels for training
+    """
+
+    def __init__(self, model, **kwargs):
+        """
+        Initialize the wrapper by creating a model and setting default inner values
+
+        Args:
+            model: the name of the SMT model (cf. SMT docs)
+            **kwargs: arguments for the SMT model creation (cf. SMT docs)
+        """
+
+        self.surrogate_model = None
+
+        if model == "KRG":
+            kwargs.setdefault("corr", "matern52")
+            self.surrogate_model = smtsm.KRG(**kwargs)
+        elif model == "KPLS":
+            self.surrogate_model = smtsm.KPLS(**kwargs)
+        elif model == "KPLSK":
+            self.surrogate_model = smtsm.KPLSK(**kwargs)
+        elif model == "GPX":
+            self.surrogate_model = smtsm.GPX(**kwargs)
+        elif model == "GEKPLS":
+            self.surrogate_model = smtsm.GEKPLS(**kwargs)
+        elif model == "MGP":
+            self.surrogate_model = smtsm.MGP(**kwargs)
+        elif model == "SGP":
+            self.surrogate_model = smtsm.SGP(**kwargs)
+        else:
+            print("Unknown GP, use default Kriging with Matern 5/2")
+            kwargs.setdefault("corr", "matern52")
+            self.surrogate_model = smtsm.KRG(**kwargs)
+
+        self.X_train_ = None
+        self.y_train_ = None
+
+    def fit(self, X,Y):
+        """
+        Fit (ie. train) the model with given features and labels
+
+        Args:
+            X: the features for the training
+            Y: the labels for the training
+        """
+
+        self.surrogate_model.set_training_values(X, Y)
+        self.X_train_ = self.surrogate_model.training_points[None][0][0]
+        self.y_train_ = self.surrogate_model.training_points[None][0][1]
+        self.surrogate_model.train()
+
+    def predict(self, X, return_std=False):
+        """
+        Predict the label for a given set of features using the SMT model previously trained
+
+        Args:
+            X: the features to predict
+            return_std (optional bool): whether the standard deviation should be returned
+
+        Returns:
+            The predicted label and if `return_std` was true the standard deviation (the 2 as a pair)
+        """
+        y = self.surrogate_model.predict_values(X)
+        if return_std:
+            if self.surrogate_model.supports["variances"]:
+                dy = self.surrogate_model.predict_variances(X)
+            else:
+                dy = np.ones_like(y)
+            return y, np.sqrt(dy)
+
+        return y
+
+    def set_params(self, **params):
+        """
+        Set the model parameters after the creationg of the wrapper
+
+        Args:
+            **params (dict): the parameters and their values
+        """
+        for (k,v) in params.items():
+            self.surrogate_model.options[k] = v

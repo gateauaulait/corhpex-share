@@ -103,7 +103,6 @@ class LikwidAggregator(BaseAggregator):
             a (dict): the application description
             config (dict): the configuration (design) to execute
         """
-        pass
         id_str = self.config.get_conf(config)
         perfcounters = self.config.measure["perfcounters"].unwrap()
 
@@ -179,7 +178,7 @@ class LikwidAggregator(BaseAggregator):
 
         return True
 
-    def write_stats_to_csv(self, metric_id: str):
+    def write_stats_to_csv(self, metric_id):
         """
         Write the statistics of a metric to a CSV file
 
