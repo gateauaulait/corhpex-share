@@ -2,6 +2,8 @@ from .ExhaustiveExplorer import ExhaustiveExplorer
 from .GAExplorer import GAExplorer
 from .BayesianOptimExplorer import BayesianOptimExplorer
 from .LikwidAggregator import LikwidAggregator
+from .ComputedAggregator import ComputedAggregator
+from .MetaAggregator import MetaAggregator
 
 __explorer_register = {
     "ga": GAExplorer,
@@ -13,7 +15,8 @@ dict[str, Explorer]: A register of available explorers
 """
 
 __aggregator_register = {
-    "likwid": LikwidAggregator
+    "likwid": LikwidAggregator,
+    "computed": ComputedAggregator
 }
 """
 dict[str, Explorer]: A register of available aggregators
@@ -67,10 +70,14 @@ def explorer_from(configuration, **kwargs):
         BaseExplorer: An explorer object that inherits from BaseExplorer
     """
     list_aggregators()
-    aggregation = configuration.measure["perfcounters"].unwrap()["method"]
-    aggregator = __aggregator_register[aggregation](configuration)
+
+    metaaggregator = MetaAggregator(configuration)
+
+    for k in configuration.metrics.keys():
+        aggregator = __aggregator_register[k](configuration)
+        metaaggregator.add(aggregator)
 
     algo = configuration.algo
-    explorer = __explorer_register[algo](aggregator, configuration, **kwargs)
+    explorer = __explorer_register[algo](metaaggregator, configuration, **kwargs)
 
     return explorer

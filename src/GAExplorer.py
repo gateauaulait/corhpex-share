@@ -112,6 +112,9 @@ class GAExplorer(BaseExplorer):
         if score > 0:
             score = 1/score
 
+        # full metrics for recording
+        measures = self.aggregator.get_app_config_metric(b, a, config)[0]
+
         with open(self.config.res_dir +'/ga_explo_' + measure_id + '_' + self.config.algo_params["target_stat"] +'.csv', 'a') as f:
             line = "GA: " + str(vector) + " " + id_str + " " + str(score) + " " + str(measures)
             f.write(line + '\n')
@@ -257,9 +260,9 @@ class GAExplorer(BaseExplorer):
             print (ga.best_individual())
 
         # Dump statistics to CSV
-        perfcounters = self.config.measure["perfcounters"].unwrap()
-        for m in perfcounters["metrics"]:
-            self.aggregator.write_stats_to_csv(m["id"])
+        perfcounters = self.config.metrics
+        for m in self.aggregator.get_metrics_ids():
+            self.aggregator.write_stats_to_csv(m)
 
 
     def run(self, ga_params={}):

@@ -270,9 +270,8 @@ class BayesianOptimExplorer(BaseExplorer):
             self._explore_BO(ba)
 
         # Dump statistics to CSV
-        perfcounters = self.config.measure["perfcounters"].unwrap()
-        for m in perfcounters["metrics"]:
-            self.aggregator.write_stats_to_csv(m["id"])
+        for m in self.aggregator.get_metrics_ids():
+            self.aggregator.write_stats_to_csv(m)
 
         return
         

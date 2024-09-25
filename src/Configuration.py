@@ -27,17 +27,7 @@ class Configuration:
             print(self.res_dir)
 
             # set up what is mesured and how
-            self.measure = dict()
-            if config.get("measure"):
-                # Always assume time in mesured in-app and printed on stdout
-                self.measure["time"] = {"method": "in-app", "output": "stdout"}
-                if config["measure"].get("perfcounters"):
-                    self.measure["perfcounters"] = Option.of(config["measure"]["perfcounters"])
-                else:
-                    self.measure["perfcounters"] = Option.empty()
-            else:
-                # If the mesure section is absent add an empty perfcounter section
-                self.measure["perfcounters"] = Option.empty()
+            self.metrics = config["metrics"]
 
         # ensures all subspaces are declared
         self.space.setdefault("compileflags", dict())
