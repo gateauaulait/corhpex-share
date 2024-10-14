@@ -9,6 +9,8 @@ You need a python3.11+ environnement with the following modules :
 - numpy
 - pyeasyga
 - bayesian-optimization
+- ply
+- smt
 
 We also need likwid to access time and performance counters and the user needs the appropriate permissions to the MSR. For more informations on how to setup likwid please see the official documentation.
 
