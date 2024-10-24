@@ -1,0 +1,98 @@
+meta_rep = 3
+stat_fn = ["mean", "med"]
+res_dir = "exp-cp"
+algo = "all"
+
+######################
+###### Metrics #######
+######################
+[metrics]
+
+[metrics.likwid.options]
+groups = ["ENERGY"]
+use_api = true
+mode = 0
+
+######################
+
+[[metrics.likwid.metrics]]
+id = "energy"
+section = "TABLE,Region Compute,Group 1 Metric"
+groups = ["ENERGY"]
+fields = ["Energy Core [J]", "Energy PKG [J]"]
+cols = [1, 1, 2, 2]
+
+[[metrics.likwid.metrics]]
+id = "clock"
+section = "TABLE,Region Compute,Group 1 Metric"
+groups = ["ENERGY"]
+fields = ["Clock [MHz]"]
+cols = [1]
+
+[[metrics.likwid.metrics]]
+id = "rdtsc"
+section = "TABLE,Region Compute,Group 1 Metric"
+groups = ["ENERGY"]
+fields = ["Runtime (RDTSC) [s]"]
+cols = [1]
+
+[[metrics.computed]]
+id = "edp"
+expr = "energy*rdtsc*rdtsc"
+
+
+######################
+##### Benchmarks #####
+######################
+
+[[benchmarks]]
+name = "Vecto friendly benchmark"
+id = "cp-bench"
+root_dir = "cp"
+compile_cmd = "mkdir -p build;cd build;rm -rf ./*;cmake -DCMAKE_BUILD_TYPE=NoFlags -DCMAKE_CXX_FLAGS='-march=native -funroll-all-loops -O3 <compile_flags>' ..;make;cd -"
+
+[[benchmarks.apps]]
+name = "Capillary Pressure Law"
+id = "cp"
+root_dir = "build"
+exec_cmd = "bench --iter=100000 --size=10032 <exec_flags> <variants>"
+variants = ["../example_set"]
+variant_names = ["rand"]
+
+######################
+####### Space ########
+######################
+
+[exploration-space]
+
+######################
+
+#[[exploration-space.compileflags]]
+
+######################
+
+# When the bench supports OMP
+[[exploration-space.envvars]]
+name = "OMP_NUM_THREADS"
+id = "th"
+values = [8, 16, 32, 64]
+
+[[exploration-space.envvars]]
+name = "SPX_PKG_FIRST"
+id = "pkg"
+values = [0, 1]
+
+[[exploration-space.envvars]]
+name = "SPX_DIE_FIRST"
+id = "die"
+values = [0, 1]
+
+[[exploration-space.envvars]]
+name = "SPX_L3_FIRST"
+id = "l3"
+values = [0, 1]
+
+[[exploration-space.envvars]]
+name = "SPX_SMT_FIRST"
+id = "smt"
+values = [0, 1]

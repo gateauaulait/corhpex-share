@@ -49,12 +49,15 @@ class ExhaustiveExplorer(BaseExplorer):
 
                     if not self.aggregator.app_config_was_evaluated(ba["b"], ba["a"], config):
                         action_func(config, ba)
-                    else:
-                        self.aggregator.get_app_config_metric_stat(ba["b"], ba["a"], config)[0]
+                    metrics = self.aggregator.get_app_config_metric_stat(ba["b"], ba["a"], config)[0]
 
         # Clean up environment
         if apply_config:
             self._reset_envcmd()
+
+        for m in self.aggregator.get_metrics_ids():
+            self.aggregator.write_stats_to_csv(m)
+
 
     def run(self):
         """

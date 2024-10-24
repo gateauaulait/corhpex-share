@@ -3,6 +3,7 @@ import re
 import os
 from .option import Option, Some, Nothing
 from .utils import exec_cmd
+import datetime
 
 class Configuration:
     def __init__(self, config_file, force=False, res_dir=None):
@@ -13,6 +14,7 @@ class Configuration:
 
         with open(config_file, "rb") as f:
             config = tomli.load(f)
+            self.name = config.get("name", datetime.datetime.fromtimestamp(time.time()).strftime("%Y%m%d%H%M"))
             self.benchmarks = config["benchmarks"]
             self.meta_rep = config["meta_rep"]
             self.res_stats = config["stat_fn"]
@@ -20,7 +22,7 @@ class Configuration:
             self.algo = config["algo"]
             self.algo_params = config.get("algo_params", {})
             # directory to hold measurement
-            self.res_dir = os.path.abspath(config.get("res_dir", "res_dir/"))
+            self.res_dir = os.path.abspath(config.get("res_dir", "res_dir")) + "/"
             if res_dir != None:
                 self.res_dir = res_dir
             self.force = force
