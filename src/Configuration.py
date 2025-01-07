@@ -4,6 +4,7 @@ import os
 from .option import Option, Some, Nothing
 from .utils import exec_cmd
 import datetime
+import time
 
 class Configuration:
     def __init__(self, config_file, force=False, res_dir=None):
