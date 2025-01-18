@@ -1,0 +1,405 @@
+meta_rep = 2
+stat_fn = ["mean", "med"]
+res_dir = "res-hpc-all-codes"
+#algo = "bo"
+algo = "all"
+
+######################
+###### Metrics #######
+######################
+[metrics]
+
+[metrics.likwid.options]
+groups = ["ENERGY"]
+use_api = true
+mode = 0
+
+######################
+
+[[metrics.likwid.metrics]]
+id = "energy"
+section = "TABLE,Region compute,Group 1 Metric"
+groups = ["ENERGY"]
+fields = ["Energy [J]", "Energy DRAM [J]"]
+cols = [1, 1, 2, 2]
+
+[[metrics.likwid.metrics]]
+id = "clock"
+section = "TABLE,Region compute,Group 1 Metric"
+groups = ["ENERGY"]
+fields = ["Clock [MHz]"]
+cols = [1]
+
+[[metrics.likwid.metrics]]
+id = "rdtsc"
+section = "TABLE,Region compute,Group 1 Metric"
+groups = ["ENERGY"]
+fields = ["Runtime (RDTSC) [s]"]
+cols = [1]
+
+[[metrics.computed]]
+id = "edp"
+expr = "energy*rdtsc*rdtsc"
+
+######################
+##### Benchmarks #####
+######################
+
+[[benchmarks]]
+name = "HPC-benchmarks"
+id = "hpc-bench"
+root_dir = "hpc"
+compile_cmd = "cd hpc; python3 setup.py > tmp"
+
+[[benchmarks.apps]]
+name = "Blackscholes"
+id = "black"
+root_dir = "Blackscholes"
+exec_cmd = "run.sh"
+compile_cmd = "make CC=clang CXX=clang++ MODE=<compile_flags>"
+variants = [""]
+
+[[benchmarks.apps]]
+name = "lulesh2.0.3"
+id = "lulesh2.0.3"
+root_dir = "lulesh2.0.3"
+exec_cmd = "run.sh"
+compile_cmd = "make CC=clang MODE=<compile_flags>"
+variants = [""]
+
+
+[[benchmarks.apps]]
+name = "clomp_v1.2"
+id = "clomp_v1.2"
+root_dir = "clomp_v1.2"
+exec_cmd = "run.sh"
+compile_cmd = "make cerec CC=clang CXX=clang++ MODE=<compile_flags>"
+variants = [""]
+
+# segfault on dahu not a priority
+#[[benchmarks.apps]]
+#name = "HACCmk"
+#id = "HACCmk"
+#root_dir = "HACCmk"
+#exec_cmd = "run.sh"
+#compile_cmd = "make"
+#variants = [""]
+
+# different inputs available
+# quite time consuming to execute
+[[benchmarks.apps]]
+name = "Quicksilver"
+id = "Quicksilver"
+root_dir = "Quicksilver/src/"
+exec_cmd = "run.sh"
+compile_cmd = "make CCC=clang++ MODE=<compile_flags>"
+variants = [""]
+
+[[benchmarks.apps]]
+name = "IS"
+id = "IS"
+root_dir = "IS/IS"
+exec_cmd = "run.sh"
+compile_cmd = "make CLASS=A CCC=clang CXX=clang++ MODE=<compile_flags>"
+variants = [""]
+
+[[benchmarks.apps]]
+name = "BT"
+id = "BT"
+root_dir = "NPB3.0-omp-C/BT"
+exec_cmd = "run.sh"
+compile_cmd = "make CLASS=A CCC=clang MODE=<compile_flags>"
+variants = [""]
+
+[[benchmarks.apps]]
+name = "CG"
+id = "CG"
+root_dir = "NPB3.0-omp-C/CG"
+exec_cmd = "run.sh"
+compile_cmd = "make CLASS=A CCC=clang MODE=<compile_flags>"
+variants = [""]
+
+[[benchmarks.apps]]
+name = "EP"
+id = "EP"
+root_dir = "NPB3.0-omp-C/EP"
+exec_cmd = "run.sh"
+compile_cmd = "make CLASS=A CCC=clang MODE=<compile_flags>"
+variants = [""]
+
+[[benchmarks.apps]]
+name = "FT"
+id = "FT"
+root_dir = "NPB3.0-omp-C/FT"
+exec_cmd = "run.sh"
+compile_cmd = "make CLASS=A CCC=clang MODE=<compile_flags>"
+variants = [""]
+
+[[benchmarks.apps]]
+name = "LU"
+id = "LU"
+root_dir = "NPB3.0-omp-C/LU"
+exec_cmd = "run.sh"
+compile_cmd = "make CLASS=A CCC=clang MODE=<compile_flags>"
+variants = [""]
+
+[[benchmarks.apps]]
+name = "MG"
+id = "MG"
+root_dir = "NPB3.0-omp-C/MG"
+exec_cmd = "run.sh"
+compile_cmd = "make CLASS=A CCC=clang MODE=<compile_flags>"
+variants = [""]
+
+[[benchmarks.apps]]
+name = "SP"
+id = "SP"
+root_dir = "NPB3.0-omp-C/SP"
+exec_cmd = "run.sh"
+compile_cmd = "make CLASS=A CCC=clang MODE=<compile_flags>"
+variants = [""]
+
+
+[[benchmarks.apps]]
+name = "backprop"
+id = "backprop"
+root_dir = "rodinia_3.1/openmp/backprop"
+exec_cmd = "run.sh"
+compile_cmd = "make CCC=clang MODE=<compile_flags>"
+variants = [""]
+
+
+
+# todo: add more variants simple / double
+[[benchmarks.apps]]
+name = "cfd"
+id = "cfd"
+root_dir = "rodinia_3.1/openmp/cfd"
+exec_cmd = "run.sh"
+compile_cmd = "make CCC=clang MODE=<compile_flags>"
+variants = [""]
+
+[[benchmarks.apps]]
+name = "hotspot3D"
+id = "hotspot3D"
+root_dir = "rodinia_3.1/openmp/hotspot3D"
+exec_cmd = "run.sh"
+compile_cmd = "make CCC=clang MODE=<compile_flags>"
+variants = [""]
+
+[[benchmarks.apps]]
+name = "lavaMD"
+id = "lavaMD"
+root_dir = "rodinia_3.1/openmp/lavaMD/"
+exec_cmd = "run.sh"
+compile_cmd = "make CCC=clang MODE=<compile_flags>"
+variants = [""]
+
+[[benchmarks.apps]]
+name = "lud"
+id = "lud"
+root_dir = "rodinia_3.1/openmp/lud/omp/"
+exec_cmd = "run.sh"
+compile_cmd = "make CCC=clang MODE=<compile_flags>"
+variants = [""]
+
+# normal runs is ok
+# but when profiling with likwid: 
+# The file was not opened for reading
+# Floating point exception
+#[[benchmarks.apps]]
+#name = "myocyte"
+#id = "myocyte"
+#root_dir = "rodinia_3.1/openmp/myocyte/"
+#exec_cmd = "run.sh"
+#compile_cmd = "make CCC=clang MODE=<compile_flags>"
+#variants = [""]
+
+[[benchmarks.apps]]
+name = "nw"
+id = "nw"
+root_dir = "rodinia_3.1/openmp/nw/"
+exec_cmd = "run.sh"
+compile_cmd = "make CCC=clang MODE=<compile_flags>"
+variants = [""]
+
+[[benchmarks.apps]]
+name = "particlefilter"
+id = "particlefilter"
+root_dir = "rodinia_3.1/openmp/particlefilter/"
+exec_cmd = "run.sh"
+compile_cmd = "make CCC=clang MODE=<compile_flags>"
+variants = [""]
+
+[[benchmarks.apps]]
+name = "pathfinder"
+id = "pathfinder"
+root_dir = "rodinia_3.1/openmp/pathfinder/"
+exec_cmd = "run.sh"
+compile_cmd = "make CCC=clang MODE=<compile_flags>"
+variants = [""]
+
+[[benchmarks.apps]]
+name = "srad"
+id = "srad"
+root_dir = "rodinia_3.1/openmp/srad/srad_v1/"
+exec_cmd = "run.sh"
+compile_cmd = "make CCC=clang MODE=<compile_flags>"
+variants = [""]
+
+[[benchmarks.apps]]
+name = "streamcluster"
+id = "streamcluster"
+root_dir = "rodinia_3.1/openmp/streamcluster/"
+exec_cmd = "run.sh"
+compile_cmd = "make CCC=clang MODE=<compile_flags>"
+variants = [""]
+
+
+## For all the following benchmarks, we need to download their data set: rodinia openmp
+
+[[benchmarks.apps]]
+name = "nn"
+id = "nn"
+root_dir = "rodinia_3.1/openmp/nn/"
+exec_cmd = "run.sh"
+compile_cmd = "make CCC=clang MODE=<compile_flags>"
+variants = [""]
+
+[[benchmarks.apps]]
+name = "hotspot"
+id = "hotspot"
+root_dir = "rodinia_3.1/openmp/hotspot"
+exec_cmd = "run.sh"
+compile_cmd = "make CCC=clang MODE=<compile_flags>"
+variants = [""]
+
+[[benchmarks.apps]]
+name = "bfs"
+id = "bfs"
+root_dir = "rodinia_3.1/openmp/bfs"
+exec_cmd = "run.sh"
+compile_cmd = "make CCC=clang MODE=<compile_flags>"
+variants = [""]
+
+[[benchmarks.apps]]
+name = "leukocyte"
+id = "leukocyte"
+root_dir = "rodinia_3.1/openmp/leukocyte/OpenMP/"
+exec_cmd = "run.sh"
+compile_cmd = "make CCC=clang MODE=<compile_flags>"
+variants = [""]
+
+[[benchmarks.apps]]
+name = "kmeans"
+id = "kmeans"
+root_dir = "rodinia_3.1/openmp/kmeans/kmeans_openmp/"
+exec_cmd = "run.sh"
+compile_cmd = "make CCC=clang MODE=<compile_flags>"
+variants = [""]
+
+[[benchmarks.apps]]
+name = "heartwall"
+id = "heartwall"
+root_dir = "rodinia_3.1/openmp/heartwall"
+exec_cmd = "run.sh"
+compile_cmd = "make CCC=clang MODE=<compile_flags>"
+variants = [""]
+
+[[benchmarks.apps]]
+name = "b+tree"
+id = "b+tree"
+root_dir = "rodinia_3.1/openmp/b+tree"
+exec_cmd = "run.sh"
+compile_cmd = "make CCC=clang MODE=<compile_flags>"
+variants = [""]
+
+######################
+####### Space ########
+######################
+
+[exploration-space]
+
+[[exploration-space.execflags]]
+name = ""
+values = [""]
+
+######################
+
+#[[exploration-space.compileflags]]
+#name = "-O3"
+
+#[[exploration-space.compileflags]]
+#name = "-O2"
+
+#[[exploration-space.compileflags]]
+#name = "-ffast-math"
+
+#[[exploration-space.compileflags]]
+#name = "-march=native"
+
+######################
+
+# When the bench supports OMP
+[[exploration-space.envvars]]
+name = "OMP_NUM_THREADS"
+id = "th"
+#values = [8,16,32,64]
+values = [16]
+
+[[exploration-space.envvars]]
+name = "SPX_PKG_FIRST"
+id = "pkg"
+values = [0]
+
+[[exploration-space.envvars]]
+name = "SPX_SMT_FIRST"
+id = "smt"
+values = [0]
+
+
+# Not relevant for dahu grid architectures
+###
+#[[exploration-space.envvars]]
+#name = "SPX_DIE_FIRST"
+#id = "die"
+#values = [0, 1]
+
+#[[exploration-space.envvars]]
+#name = "SPX_L3_FIRST"
+#id = "l3"
+#values = [0, 1]
+###
+
+######################
+
+# When we have sudo rights to activate and deactivate prefetchers
+[[exploration-space.envcmd]]
+name = "sudo /usr/sbin/wrmsr -a 0x1A4 "
+id = "prefetch"
+values = [0]
+#values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+reset = 0
+
+
+[[exploration-space.envcmd]]
+# this path should be changed to an absolute value -- todo
+name = "sudo /home/mpopov/2025/corhpex/example/hpc/freq.sh 63"
+id = "freq"
+values = ["2000MHz"]
+#values = ["1000MHz","1500MHz", "2000MHz", "2500MHz", "3000MHz"]
+reset = "2000MHz"
+#values = ["powersave", "performance"]
+#reset = "powersave"
+
+
+# example of bo exploration parameters
+#[algo_params]
+#init_points=30                      # number of random points to start with
+#n_iter=20                           # number of iterations (i.e. number of points on top of the random one at the start)
+#alpha=0.0001                        # tune the gaussian process regressor, use higher values for decrete parameters
+#aquisition_func.kind = "ei"         # or "ucb" or 'poi'
+#aquisition_func.xi = 3              # or kappa for ucb
+#target = "rdtsc"                    # target metric to optimize
+#target_stat = "med"                 # statistic of the metric to optimize
+#seed_value = 0                      # seed value for anything random in the algorithm

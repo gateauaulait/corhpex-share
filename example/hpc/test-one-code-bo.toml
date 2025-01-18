@@ -1,0 +1,144 @@
+meta_rep = 2
+stat_fn = ["mean", "med"]
+res_dir = "res-hpc-bo"
+algo = "bo"
+
+######################
+###### Metrics #######
+######################
+[metrics]
+
+[metrics.likwid.options]
+groups = ["ENERGY"]
+use_api = true
+mode = 0
+
+######################
+
+[[metrics.likwid.metrics]]
+id = "energy"
+section = "TABLE,Region compute,Group 1 Metric"
+groups = ["ENERGY"]
+fields = ["Energy [J]", "Energy DRAM [J]"]
+cols = [1, 1, 2, 2]
+
+[[metrics.likwid.metrics]]
+id = "clock"
+section = "TABLE,Region compute,Group 1 Metric"
+groups = ["ENERGY"]
+fields = ["Clock [MHz]"]
+cols = [1]
+
+[[metrics.likwid.metrics]]
+id = "rdtsc"
+section = "TABLE,Region compute,Group 1 Metric"
+groups = ["ENERGY"]
+fields = ["Runtime (RDTSC) [s]"]
+cols = [1]
+
+[[metrics.computed]]
+id = "edp"
+expr = "energy*rdtsc*rdtsc"
+
+######################
+##### Benchmarks #####
+######################
+
+[[benchmarks]]
+name = "HPC-benchmarks"
+id = "hpc-bench"
+root_dir = "hpc"
+compile_cmd = "cd hpc; python3 setup.py > tmp"
+
+[[benchmarks.apps]]
+name = "CG"
+id = "CG"
+root_dir = "NPB3.0-omp-C/CG"
+exec_cmd = "run.sh"
+compile_cmd = "make CLASS=A CCC=clang MODE=<compile_flags>"
+variants = [""]
+
+######################
+####### Space ########
+######################
+
+[exploration-space]
+
+[[exploration-space.execflags]]
+name = ""
+values = [""]
+
+######################
+
+[[exploration-space.compileflags]]
+name = "-O3"
+
+[[exploration-space.compileflags]]
+name = "-O2"
+
+[[exploration-space.compileflags]]
+name = "-ffast-math"
+
+[[exploration-space.compileflags]]
+name = "-march=native"
+
+######################
+
+# When the bench supports OMP
+[[exploration-space.envvars]]
+name = "OMP_NUM_THREADS"
+id = "th"
+values = [8,16,32,64]
+
+[[exploration-space.envvars]]
+name = "SPX_PKG_FIRST"
+id = "pkg"
+values = [0,1]
+
+[[exploration-space.envvars]]
+name = "SPX_SMT_FIRST"
+id = "smt"
+values = [0,1]
+
+
+# Not relevant for dahu grid architectures
+###
+#[[exploration-space.envvars]]
+#name = "SPX_DIE_FIRST"
+#id = "die"
+#values = [0, 1]
+
+#[[exploration-space.envvars]]
+#name = "SPX_L3_FIRST"
+#id = "l3"
+#values = [0, 1]
+###
+
+######################
+
+# When we have sudo rights to activate and deactivate prefetchers
+[[exploration-space.envcmd]]
+name = "sudo /usr/sbin/wrmsr -a 0x1A4 "
+id = "prefetch"
+values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+reset = 0
+
+
+[[exploration-space.envcmd]]
+# this path should be changed to an absolute value -- todo
+name = "sudo /home/mpopov/2025/corhpex/example/hpc/freq.sh 63"
+id = "freq"
+values = ["1000MHz","1500MHz", "2000MHz", "2500MHz", "3000MHz"]
+reset = "2000MHz"
+
+
+# example of bo exploration parameters
+[algo_params]
+init_points=10                      # number of random points to start with
+n_iter=10                           # number of iterations (i.e. number of points on top of the random one at the start)
+alpha=0.0001                        # tune the gaussian process regressor, use higher values for decrete parameters
+aquisition_func.kind = "ei"         # or "ucb" or 'poi'
+aquisition_func.xi = 3              # or kappa for ucb
+target = "edp"                      # target metric to optimize, could be rdtsc or energy
+target_stat = "med"                 # statistic of the metric to optimize
+seed_value = 0                      # seed value for anything random in the algorithm

@@ -1,0 +1,31 @@
+app;exec;location
+Blackscholes;./blackscholes ${OMP_NUM_THREADS} in_64K.txt out
+clomp_v1.2;./clomp ${OMP_NUM_THREADS} -1 16 6400 32 1 100
+IS;../bin/is.A;IS/IS
+lulesh2.0.3;./lulesh2.0 -s 5
+Quicksilver;./qs;Quicksilver/src/
+BT;../bin/bt.A;NPB3.0-omp-C/BT
+CG;../bin/cg.A;NPB3.0-omp-C/CG
+EP;../bin/ep.A;NPB3.0-omp-C/EP
+FT;../bin/ft.A;NPB3.0-omp-C/FT
+LU;../bin/lu.A;NPB3.0-omp-C/LU
+MG;../bin/mg.A;NPB3.0-omp-C/MG
+SP;../bin/sp.A;NPB3.0-omp-C/SP
+backprop;./backprop 1000;rodinia_3.1/openmp/backprop/
+bfs;./bfs ${OMP_NUM_THREADS} ../../data/bfs/graph1MW_6.txt;rodinia_3.1/openmp/bfs/
+b+tree;./b+tree.out core ${OMP_NUM_THREADS} file ../../data/b+tree/mil.txt command ../../data/b+tree/command.txt;rodinia_3.1/openmp/b+tree/
+cfd;./euler3d_cpu ../../data/cfd/missile.domn.0.2M;rodinia_3.1/openmp/cfd/
+hotspot;./hotspot 1024 1024 2 ${OMP_NUM_THREADS} ../../data/hotspot/temp_1024 ../../data/hotspot/power_1024 output.out;rodinia_3.1/openmp/hotspot/
+heartwall;./heartwall ../../data/heartwall/test.avi 20 ${OMP_NUM_THREADS};rodinia_3.1/openmp/heartwall/
+hotspot3D;./3D 512 8 100 ../../data/hotspot3D/power_512x8 ../../data/hotspot3D/temp_512x8 output.out;rodinia_3.1/openmp/hotspot3D/
+kmeans;./kmeans -n ${OMP_NUM_THREADS} -i ../../../data/kmeans/kdd_cup;rodinia_3.1/openmp/kmeans/kmeans_openmp/
+lavaMD;./lavaMD -cores ${OMP_NUM_THREADS} -boxes1d 10;rodinia_3.1/openmp/lavaMD/
+leukocyte;./leukocyte 5 ${OMP_NUM_THREADS} ../../../data/leukocyte/testfile.avi;rodinia_3.1/openmp/leukocyte/OpenMP/
+lud;./lud_omp -n ${OMP_NUM_THREADS} -s 8000;rodinia_3.1/openmp/lud/omp/
+myocyte;./myocyte.out 100 50 1 ${OMP_NUM_THREADS};rodinia_3.1/openmp/myocyte/
+nn;./nn filelist_4 5 30 90;rodinia_3.1/openmp/nn/
+nw;./needle 2048 10 ${OMP_NUM_THREADS};rodinia_3.1/openmp/nw/
+particlefilter;./particle_filter -x 128 -y 128 -z 10 -np 10000;rodinia_3.1/openmp/particlefilter/
+pathfinder;./pathfinder 100000 100 > out;rodinia_3.1/openmp/pathfinder/
+srad;./srad 100 0.5 502 458 ${OMP_NUM_THREADS};rodinia_3.1/openmp/srad/srad_v1/
+streamcluster;./sc_omp 10 20 128 1000000 200000 5000 none output.txt ${OMP_NUM_THREADS};rodinia_3.1/openmp/streamcluster/
