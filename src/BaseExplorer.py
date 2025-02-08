@@ -122,6 +122,16 @@ class BaseExplorer(ABC):
                     instr_cmd = prefix + group + cmd
                     exec_cmd(instr_cmd, self._custom_env)
 
+        ###
+        # Please update without likwid
+        # This is a quick fix to enable thread biding
+        ###
+        if "simple" in self.config.metrics:
+            bindings = self._get_pinning(nb_threads)
+            prefix = "likwid-perfctr -C " + bindings
+            instr_cmd = prefix + " -M 0 -g ENERGY " + cmd
+            exec_cmd(instr_cmd, self._custom_env)
+
     # Cleanup measure files
     def _handle_measures(self, a, v, id_str):
         """
@@ -139,6 +149,11 @@ class BaseExplorer(ABC):
                 for g in perfcounters["options"]["groups"]:
                     filename = "likwid_" + g + "_" + str(i) + "_" + a["id"] + "_" + a["variant_names"][v] + "_" + id_str + ".csv"
                     exec_cmd("mv likwid_" + g + "_" + str(i) + ".csv " + a["time_dir"] + "/" + filename)
+
+        # Move simple data files
+        if "simple" in self.config.metrics:
+            filename = "profile_simple" + "_" + a["id"] + "_" + a["variant_names"][v] + "_" + id_str + ".csv"
+            exec_cmd("mv profile_simple.csv " + a["time_dir"] + "/" + filename)
 
     def _evaluate(self, config, ba):
         """
