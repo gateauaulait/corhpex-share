@@ -128,10 +128,9 @@ class BaseExplorer(ABC):
         ###
         if "simple" in self.config.metrics:
             bindings = self._get_pinning(nb_threads)
-            prefix = "likwid-perfctr -C " + bindings
-            instr_cmd = prefix + " -M 0 -g ENERGY " + cmd
-            cmd = 'sudo '+ cmd 
-            exec_cmd(cmd, self._custom_env)
+            prefix = f"KMP_AFFINITY=scatter,granularity=fine,verbose " 
+            instr_cmd = "sudo " + prefix + cmd
+            exec_cmd(instr_cmd, self._custom_env)
 
     # Cleanup measure files
     def _handle_measures(self, a, v, id_str):
