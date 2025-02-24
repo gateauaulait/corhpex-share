@@ -81,7 +81,7 @@ class BaseExplorer(ABC):
 
         dir_path = os.path.dirname(__file__)
         l = exec_cmd(dir_path + "/../thread-binding-generator/bindings-gen " + p + str(pkg_f) + " " + str(die_f) + " " + str(l3_f) + " " + str(smt_f))
-        print(nb_threads)
+        print("number of threads",nb_threads,'\n')
         print(l)
 
         l = l.split(" ")
@@ -130,7 +130,8 @@ class BaseExplorer(ABC):
             bindings = self._get_pinning(nb_threads)
             prefix = "likwid-perfctr -C " + bindings
             instr_cmd = prefix + " -M 0 -g ENERGY " + cmd
-            exec_cmd(instr_cmd, self._custom_env)
+            cmd = 'sudo '+ cmd 
+            exec_cmd(cmd, self._custom_env)
 
     # Cleanup measure files
     def _handle_measures(self, a, v, id_str):
@@ -153,7 +154,10 @@ class BaseExplorer(ABC):
         # Move simple data files
         if "simple" in self.config.metrics:
             filename = "profile_simple" + "_" + a["id"] + "_" + a["variant_names"][v] + "_" + id_str + ".csv"
-            exec_cmd("mv profile_simple.csv " + a["time_dir"] + "/" + filename)
+            exec_cmd("sudo mv profile_simple.csv " + a["time_dir"] + "/" + filename)
+
+            filename = "profile_simple_energy" + "_" + a["id"] + "_" + a["variant_names"][v] + "_" + id_str + ".csv"
+            exec_cmd("sudo mv profile_simple_energy.csv " + a["time_dir"] + "/" + filename)
 
     def _evaluate(self, config, ba):
         """

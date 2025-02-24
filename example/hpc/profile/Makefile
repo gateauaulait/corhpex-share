@@ -1,12 +1,18 @@
 CC=clang
 CXX=clang++
 FLAGS_OPENMP?=-fopenmp
-CFLAGS+=-std=gnu99 -g -llikwid
+CFLAGS+=-std=gnu99 -g 
 
 all: libinit.so
 
-libinit.so: initialization.c initialization.h
-	$(CC) $(CFLAGS) $(OPENMP_INCLUDE) $(FLAGS_OPENMP)  $< -shared -fPIC -o $@
+initialization.o: initialization.c initialization.h
+	$(CC) $(CFLAGS) $(OPENMP_INCLUDE) $(FLAGS_OPENMP)  $< -fPIC -c -o $@
+
+energy.o: energy.c energy.h
+	$(CC) $(CFLAGS) $(OPENMP_INCLUDE) $(FLAGS_OPENMP) $< -fPIC -c -o $@ 
+
+libinit.so: initialization.o energy.o
+	$(CC) $(CFLAGS) $(OPENMP_INCLUDE) $(FLAGS_OPENMP)  $^ -shared -o $@
 
 clean:
-	$(RM) libinit.so *~
+	$(RM) libinit.so *~ *.o

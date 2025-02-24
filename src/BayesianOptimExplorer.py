@@ -108,16 +108,25 @@ class BayesianOptimExplorer(BaseExplorer):
         measure_id = self.config.algo_params["target"]
         fn_id = self.config.res_stats.index(self.config.algo_params["target_stat"])
 
-        # higher is better score
-        score = float(measures[measure_id][fn_id])
+        # higher is better score for performance
+        score = float(measures[measure_id][fn_id]) 
         if score > 0:
             score = 1/score
 
+        score_perf = float(measures[measure_id][0])
+        if score_perf > 0:
+            score_perf = 1/score_perf
+
+        score_energy = float(measures[measure_id][1])
+
         # full metrics for recording
         measures = self.aggregator.get_app_config_metric(b, a, config)[0]
-        
+        configuration_string = ''
+        for v in flat_config.values():
+            configuration_string += str(round(v)) + '-'
+        configuration_string = configuration_string[:-1]
         with open(self.config.res_dir +'/bo_explo_' + self.sm_id + "_" + measure_id + '_' + self.config.algo_params["target_stat"] +'.csv', 'a') as f:
-            line = "BO " + str([round(v) for v in flat_config.values()]) + " " + id_str + " " + str(score) + " " + str(measures)
+            line = "BO," + configuration_string + "," + id_str + "," + str(score_perf) + "," + str(score_energy) + "," + str(measures)
             f.write(line + '\n')
             print("measure:", line)
 
@@ -217,7 +226,7 @@ class BayesianOptimExplorer(BaseExplorer):
             verbose=0,
             random_state=self.config.algo_params["seed_value"],
         )
-
+        
         params = self.config.algo_params
 
         # Change the gaussian process model for an SMT model if it is specified in the configuration

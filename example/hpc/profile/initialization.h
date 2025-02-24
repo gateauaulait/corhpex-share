@@ -11,7 +11,13 @@ static ompt_get_unique_id_t ompt_get_unique_id;
 
 static int init_profile = 0;
 double ep_time_profiling_start = 0;
+
+extern void study_energy_init(); 
+extern void rapl_sysfs_start();
+extern double rapl_sysfs_stop();
+
 FILE *file;
+FILE *file_En;
 
 static void on_ompt_callback_parallel_begin(ompt_data_t *encountering_task_data,
 	const ompt_frame_t *encountering_task_frame, ompt_data_t *parallel_data,
@@ -20,12 +26,13 @@ static void on_ompt_callback_parallel_begin(ompt_data_t *encountering_task_data,
 	// init likwid and setup profiling
 	if (init_profile == 0) {
 		file = fopen("profile_simple.csv", "w");
+		file_En = fopen("profile_simple_energy.csv", "w");
 		init_profile = 1;
-		likwid_markerInit();	
+		//likwid_markerInit();	
 		#pragma omp parallel
 		{
 			printf("parallelism init\n");  
-			likwid_markerThreadInit();
+			//likwid_markerThreadInit();
 		}
 	}
 	char id[SIZE_ID];
@@ -33,8 +40,9 @@ static void on_ompt_callback_parallel_begin(ompt_data_t *encountering_task_data,
 	// likwid_markerStartRegion(id);
 	// Temporary fix to enable one name for all parallel regions
 	// TODO: to update per region id - will need to fix the aggregator
-	likwid_markerStartRegion("compute");
+	//likwid_markerStartRegion("compute");
 	ep_time_profiling_start = omp_get_wtime();
+	rapl_sysfs_start();
 }
 
 
@@ -48,7 +56,12 @@ static void on_ompt_callback_parallel_end(ompt_data_t *parallel_data,
 	double ep_time_profiling_end = omp_get_wtime();
 	printf("\n[%p];%f\n", codeptr_ra,ep_time_profiling_end - ep_time_profiling_start);
 	fprintf(file, "[%p];%f\n", codeptr_ra,ep_time_profiling_end - ep_time_profiling_start);
-	likwid_markerStopRegion("compute");
+
+	double total_energy = rapl_sysfs_stop();
+	printf("\n[%p];%f\n", codeptr_ra,total_energy);
+	fprintf(file_En, "[%p];%f\n", codeptr_ra,total_energy);
+	
+	//likwid_markerStopRegion("compute");
 }
 
 #define register_callback_t(name, type)                                        \
@@ -73,6 +86,8 @@ int ompt_initialize(ompt_function_lookup_t lookup, int initial_device_num,
 
 	register_callback(ompt_callback_parallel_begin);
 	register_callback(ompt_callback_parallel_end);
+
+	study_energy_init();
 	
   return 1; // success: activates tool
 }
@@ -80,8 +95,9 @@ int ompt_initialize(ompt_function_lookup_t lookup, int initial_device_num,
 void ompt_finalize(ompt_data_t *tool_data) {
 	printf("application runtime: %f\n",
 		 omp_get_wtime() - *(double *)(tool_data->ptr));
-	likwid_markerClose();
+	//likwid_markerClose();
 	fclose(file);
+	fclose(file_En);
 }
 
 ompt_start_tool_result_t *ompt_start_tool(unsigned int omp_version,

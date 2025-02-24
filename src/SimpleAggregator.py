@@ -40,12 +40,14 @@ class SimpleAggregator(BaseAggregator):
         assert (len (a["variants"]) == 1)
         assert self.config.meta_rep == 1
         res = []              
-        filename_var = a["time_dir"] + "/" + "profile_simple" + "_" + a["id"] + "_" + a["variant_names"][0] + "_" + id_str + ".csv"
+        filename_var_exec_time = a["time_dir"] + "/" + "profile_simple" + "_" + a["id"] + "_" + a["variant_names"][0] + "_" + id_str + ".csv"
+        filename_var_energy = a["time_dir"] + "/" + "profile_simple_energy" + "_" + a["id"] + "_" + a["variant_names"][0] + "_" + id_str + ".csv"
         value = {}
         value["goal"] = []
-        value["goal"].append(self.read_score(filename_var))
+        value["goal"].append(self.read_score(filename_var_exec_time))
+        value["goal"].append(self.read_score(filename_var_energy))
         # quick fix to work with the other aggregators
-        value["goal"].append(self.read_score(filename_var))        
+        # value["goal"].append(self.read_score(filename_var_exec_time))        
         res.append(value)
         return res
 
