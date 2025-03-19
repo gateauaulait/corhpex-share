@@ -128,7 +128,7 @@ class BayesianOptimExplorer(BaseExplorer):
             f.write(line + '\n')
             print("measure:", line)
 
-        return score
+        return score_perf
 
     def _flat2conf(self, flat_config):
         """

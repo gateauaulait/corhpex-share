@@ -98,11 +98,17 @@ values = [0, 1]
 
 [[exploration-space.envcmd]]
 # this path should be changed to an absolute value -- todo
-name = "sudo /home/uartdev/behnaz/corhpex-share/example/hpc/freq.sh 23 8"
-freqs_gen_cmd = "sudo /home/uartdev/behnaz/corhpex-share/example/hpc/freq_generator.sh"
-id = "freq"
-values = []
-reset = "3000MHz_3000MHz"
+name = "sudo /home/uartdev/behnaz/corhpex-share/example/hpc/p_freq.sh"
+id = "Pfreq"
+values = ["1500MHz", "2000MHz", "3000MHz", "3500MHz", "4000MHz", "4500MHz", "5000MHz"]
+reset = "3000MHz"
+
+
+[[exploration-space.envcmd]]
+name = "sudo /home/uartdev/behnaz/corhpex-share/example/hpc/e_freq.sh"
+id = "Efreq"
+values = ["1000MHz", "1500MHz", "2000MHz", "3200MHz", "3500MHz", "4000MHz", "4600MHz"]
+reset = "3000MHz"
 
 
 # example of bo exploration parameters
