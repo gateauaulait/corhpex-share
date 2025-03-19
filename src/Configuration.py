@@ -22,6 +22,21 @@ class Configuration:
             self.space = config["exploration-space"]
             self.algo = config["algo"]
             self.algo_params = config.get("algo_params", {})
+            envcmd = self.space.get("envcmd", [])
+            if isinstance(envcmd, list) and len(envcmd) > 0:
+                envcmd = envcmd[0]
+            if isinstance(envcmd, dict) and "freqs_gen_cmd" in envcmd:
+                script_or_file_path = envcmd["freqs_gen_cmd"]
+                exec_cmd("chmod +x " + script_or_file_path)
+                exec_cmd(script_or_file_path)
+                filename = script_or_file_path.replace(".sh", ".txt")
+                filename = filename.split()[1]
+                val_list = []
+                with open (filename, 'r') as file:
+                    for line in file:
+                        val_list.append(line.strip())
+                envcmd["values"] = val_list
+
             # directory to hold measurement
             self.res_dir = os.path.abspath(config.get("res_dir", "res_dir")) + "/"
             if res_dir != None:

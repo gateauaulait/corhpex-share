@@ -59,7 +59,7 @@ name = "-march=native"
 [[exploration-space.envvars]]
 name = "OMP_NUM_THREADS"
 id = "th"
-values = [8,16,32,64]
+values = [24]
 
 [[exploration-space.envvars]]
 name = "SPX_PKG_FIRST"
@@ -74,33 +74,35 @@ values = [0,1]
 
 # Not relevant for dahu grid architectures
 ###
-#[[exploration-space.envvars]]
-#name = "SPX_DIE_FIRST"
-#id = "die"
-#values = [0, 1]
+[[exploration-space.envvars]]
+name = "SPX_DIE_FIRST"
+id = "die"
+values = [0, 1]
 
-#[[exploration-space.envvars]]
-#name = "SPX_L3_FIRST"
-#id = "l3"
-#values = [0, 1]
+[[exploration-space.envvars]]
+name = "SPX_L3_FIRST"
+id = "l3"
+values = [0, 1]
 ###
 
 ######################
 
 # When we have sudo rights to activate and deactivate prefetchers
-[[exploration-space.envcmd]]
-name = "sudo /usr/sbin/wrmsr -a 0x1A4 "
-id = "prefetch"
-values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
-reset = 0
+# [[exploration-space.envcmd]]
+# name = "sudo /usr/sbin/wrmsr -a 0x1A4 "
+# id = "prefetch"
+# values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+# reset = 0
+
 
 
 [[exploration-space.envcmd]]
 # this path should be changed to an absolute value -- todo
-name = "sudo /home/mpopov/2025/corhpex/example/hpc/freq.sh 63"
+name = "sudo /home/uartdev/behnaz/corhpex-share/example/hpc/freq.sh 23 8"
+freqs_gen_cmd = "sudo /home/uartdev/behnaz/corhpex-share/example/hpc/freq_generator.sh"
 id = "freq"
-values = ["1000MHz","1500MHz", "2000MHz", "2500MHz", "3000MHz"]
-reset = "2000MHz"
+values = []
+reset = "3000MHz_3000MHz"
 
 
 # example of bo exploration parameters

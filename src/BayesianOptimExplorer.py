@@ -108,16 +108,14 @@ class BayesianOptimExplorer(BaseExplorer):
         measure_id = self.config.algo_params["target"]
         fn_id = self.config.res_stats.index(self.config.algo_params["target_stat"])
 
-        # higher is better score for performance
-        score = float(measures[measure_id][fn_id]) 
-        if score > 0:
-            score = 1/score
-
+        # higher is better score for both performance and energy
         score_perf = float(measures[measure_id][0])
         if score_perf > 0:
             score_perf = 1/score_perf
 
         score_energy = float(measures[measure_id][1])
+        if score_energy > 0:
+            score_energy = 1/score_energy
 
         # full metrics for recording
         measures = self.aggregator.get_app_config_metric(b, a, config)[0]

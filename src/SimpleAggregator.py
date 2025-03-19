@@ -39,7 +39,7 @@ class SimpleAggregator(BaseAggregator):
         id_str = self.config.get_conf(config)
         assert (len (a["variants"]) == 1)
         assert self.config.meta_rep == 1
-        res = []              
+        res = []             
         filename_var_exec_time = a["time_dir"] + "/" + "profile_simple" + "_" + a["id"] + "_" + a["variant_names"][0] + "_" + id_str + ".csv"
         filename_var_energy = a["time_dir"] + "/" + "profile_simple_energy" + "_" + a["id"] + "_" + a["variant_names"][0] + "_" + id_str + ".csv"
         value = {}

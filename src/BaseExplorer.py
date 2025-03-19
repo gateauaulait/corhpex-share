@@ -54,7 +54,7 @@ class BaseExplorer(ABC):
         self._root_exec_dir = os.getcwd()
         for b in self.config.benchmarks:
             for a in b["apps"]:
-                a["time_dir"] = self.config.res_dir + "/" + b["id"] + "/" + a["id"];
+                a["time_dir"] = self.config.res_dir + "/" + b["id"] + "/" + a["id"]
                 exec_cmd("mkdir -p " + b["root_dir"] + "/" + a["root_dir"])
                 exec_cmd("mkdir -p " + a["time_dir"])
                 if a.get("variant_names") == None:
@@ -81,9 +81,7 @@ class BaseExplorer(ABC):
 
         dir_path = os.path.dirname(__file__)
         l = exec_cmd(dir_path + "/../thread-binding-generator/bindings-gen " + p + str(pkg_f) + " " + str(die_f) + " " + str(l3_f) + " " + str(smt_f))
-        print("number of threads",nb_threads,'\n')
-        print(l)
-
+        print("number of threads",nb_threads)
         l = l.split(" ")
         s = ""
         for i in range(nb_threads):
