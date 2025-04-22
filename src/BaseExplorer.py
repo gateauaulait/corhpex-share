@@ -127,8 +127,20 @@ class BaseExplorer(ABC):
         if "simple" in self.config.metrics:
             bindings = self._get_pinning(nb_threads)
             prefix = f"KMP_AFFINITY=scatter,granularity=fine,verbose " 
-            instr_cmd = "sudo " + prefix + cmd
-            exec_cmd(instr_cmd, self._custom_env)
+            if any(app["name"] == "streamcluster" for benchmark in self.config.benchmarks for app in benchmark["apps"]):
+                cmd = "env OMP_TOOL_LIBRARIES=/home/uartdev/behnaz/corhpex-share-main_original/example/hpc/profile/libinit.so ./sc_omp 10 20 128 1000000 200000 5000 none output.txt"
+                instr_cmd = "sudo " + prefix + cmd + " " + str(nb_threads)
+                exec_cmd(instr_cmd, self._custom_env)
+
+            elif any(app["name"] == "kmeans" for benchmark in self.config.benchmarks for app in benchmark["apps"]):
+                cmd = "env OMP_TOOL_LIBRARIES=/home/uartdev/behnaz/corhpex-share-main_original/example/hpc/profile/libinit.so ./kmeans -n "
+                cmd = cmd + str(nb_threads) + " " + "-i ../../../data/kmeans/kdd_cup"
+                instr_cmd = "sudo " + prefix + cmd
+                exec_cmd(instr_cmd, self._custom_env)
+
+            else:
+                instr_cmd = "sudo " + prefix + cmd
+                exec_cmd(instr_cmd, self._custom_env)
 
     # Cleanup measure files
     def _handle_measures(self, a, v, id_str):
