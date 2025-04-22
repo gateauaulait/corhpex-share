@@ -259,9 +259,27 @@ class BaseExplorer(ABC):
             config (dict[str, dict]): The configuration to use
             changes list[bool]: Indicate which compile flags have changed since last compilation
         """
-        for i,(k,v) in enumerate(config["envcmd"].items()):
-            if changes[i]:
-                exec_cmd(k + " " + str(v), self._custom_env)
+        def write_msr_to_cores(cores, msr, value):
+            for core in cores:
+                cmd = f"sudo /usr/sbin/wrmsr -p {core} {msr} {value}"
+                exec_cmd(cmd, self._custom_env)
+
+        for i, (k, v) in enumerate(config["envcmd"].items()):
+            if not changes[i]:
+                continue
+
+            if k == "sudo /usr/sbin/wrmsr -a 0x1A4 ":
+                write_msr_to_cores(range(8, 24), "0x1A4", v)
+
+            elif v in {"0x108837ea470906c4", "0x10883fea470906c4"}:
+                write_msr_to_cores([8, 12, 16, 20], "0x1320", v)
+
+            elif v in {"0x161122147800", "0x171122147800"}:
+                write_msr_to_cores([8, 12, 16, 20], "0x1321", v)
+
+            elif "freq.sh" in k:
+                exec_cmd(f"{k} {v}", self._custom_env)
+
 
     def _reset_envcmd(self):
         """
