@@ -59,7 +59,7 @@ name = "-march=native"
 [[exploration-space.envvars]]
 name = "OMP_NUM_THREADS"
 id = "th"
-values = [24]
+values = [8,16,24]
 
 [[exploration-space.envvars]]
 name = "SPX_PKG_FIRST"
@@ -88,11 +88,28 @@ values = [0, 1]
 ######################
 
 # When we have sudo rights to activate and deactivate prefetchers
-# [[exploration-space.envcmd]]
-# name = "sudo /usr/sbin/wrmsr -a 0x1A4 "
-# id = "prefetch"
-# values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
-# reset = 0
+[[exploration-space.envcmd]]
+name = "sudo /usr/sbin/wrmsr -a 0x1A4 "
+id = "1A4pref-"
+values = ['0x00','0x20','0x10','0x30','0x08','0x28','0x18','0x38','0x04', 
+        '0x24','0x14','0x34','0x0c','0x2c','0x1c','0x3c','0x01','0x21', 
+        '0x11','0x31','0x09','0x29','0x19','0x39','0x05','0x25','0x15', 
+        '0x35','0x0d','0x2d','0x1d','0x3d']
+reset = 0
+
+
+[[exploration-space.envcmd]]
+name = "sudo /usr/sbin/wrmsr -a 0x1320"
+id = "1320pref-"
+values = ['0x108837ea470906c4', '0x10883fea470906c4']
+reset = 0x108837ea470906c4
+
+
+[[exploration-space.envcmd]]
+name = "sudo /usr/sbin/wrmsr -a 0x1321"
+id = "1321pref-"
+values = ['0x161122147800', '0x171122147800']
+reset = 0x171122147800
 
 
 
@@ -101,7 +118,7 @@ values = [0, 1]
 name = "sudo /home/uartdev/behnaz/corhpex-share/example/hpc/p_freq.sh"
 id = "Pfreq"
 values = ["1500MHz", "2000MHz", "3000MHz", "3500MHz", "4000MHz", "4500MHz", "5000MHz"]
-reset = "3000MHz"
+reset = "3200MHz"
 
 
 [[exploration-space.envcmd]]
@@ -113,8 +130,8 @@ reset = "3000MHz"
 
 # example of bo exploration parameters
 [algo_params]
-init_points=10                      # number of random points to start with
-n_iter=10                           # number of iterations (i.e. number of points on top of the random one at the start)
+init_points=50                      # number of random points to start with
+n_iter=150                           # number of iterations (i.e. number of points on top of the random one at the start)
 alpha=0.0001                        # tune the gaussian process regressor, use higher values for decrete parameters
 aquisition_func.kind = "ei"         # or "ucb" or 'poi'
 aquisition_func.xi = 3              # or kappa for ucb
