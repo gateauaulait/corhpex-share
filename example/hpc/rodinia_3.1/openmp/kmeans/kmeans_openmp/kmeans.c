@@ -79,6 +79,7 @@
 #include "getopt.h"
 
 #include "kmeans.h"
+#include <unistd.h>
 
 extern double wtime(void);
 
