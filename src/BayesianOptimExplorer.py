@@ -123,7 +123,7 @@ class BayesianOptimExplorer(BaseExplorer):
         for v in flat_config.values():
             configuration_string += str(round(v)) + '-'
         configuration_string = configuration_string[:-1]
-        with open(self.config.res_dir +'/bo_explo_' + self.sm_id + "_" + measure_id + '_' + self.config.algo_params["target_stat"] +'.csv', 'a') as f:
+        with open(self.config.res_dir +'/bo_explo_' + a['name']+ "_"+ self.sm_id + "_" + measure_id + '_' + self.config.algo_params["target_stat"] +'.csv', 'a') as f:
             line = "BO," + configuration_string + "," + id_str + "," + str(score_perf) + "," + str(score_energy) + "," + str(measures)
             f.write(line + '\n')
             print("measure:", line)
