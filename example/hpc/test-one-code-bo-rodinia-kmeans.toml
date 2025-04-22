@@ -21,26 +21,27 @@ id = "hpc-bench"
 root_dir = "hpc"
 compile_cmd = "cd hpc; python3 setup.py > tmp"
 
+
 [[benchmarks.apps]]
-name = "CG"
-id = "CG"
-root_dir = "NPB3.0-omp-C/CG"
+name = "kmeans"
+id = "kmeans"
+root_dir = "rodinia_3.1/openmp/kmeans/kmeans_openmp"
 exec_cmd = "run.sh"
-compile_cmd = "make CLASS=A CCC=clang MODE=<compile_flags>"
+compile_cmd = "make CCC=clang MODE=<compile_flags>"
 variants = [""]
+
 
 ######################
 ####### Space ########
 ######################
 
-[exploration-space]
+# [exploration-space]
 
 [[exploration-space.execflags]]
 name = ""
 values = [""]
 
 ######################
-
 [[exploration-space.compileflags]]
 name = "-O3"
 

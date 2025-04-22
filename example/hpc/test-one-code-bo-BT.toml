@@ -21,10 +21,11 @@ id = "hpc-bench"
 root_dir = "hpc"
 compile_cmd = "cd hpc; python3 setup.py > tmp"
 
+
 [[benchmarks.apps]]
-name = "CG"
-id = "CG"
-root_dir = "NPB3.0-omp-C/CG"
+name = "BT"
+id = "BT"
+root_dir = "NPB3.0-omp-C/BT"
 exec_cmd = "run.sh"
 compile_cmd = "make CLASS=A CCC=clang MODE=<compile_flags>"
 variants = [""]
@@ -33,14 +34,13 @@ variants = [""]
 ####### Space ########
 ######################
 
-[exploration-space]
+# [exploration-space]
 
 [[exploration-space.execflags]]
 name = ""
 values = [""]
 
 ######################
-
 [[exploration-space.compileflags]]
 name = "-O3"
 
