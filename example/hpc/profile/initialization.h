@@ -5,6 +5,9 @@
 
 // defines the size of ids for parallel regions
 #define SIZE_ID 15
+// defines the number of regions to be profiled
+#define NUMBER_OF_REGIONS 
+static int parallel_region_call = 0;
 
 static ompt_get_thread_data_t ompt_get_thread_data;
 static ompt_get_unique_id_t ompt_get_unique_id;
@@ -62,6 +65,17 @@ static void on_ompt_callback_parallel_end(ompt_data_t *parallel_data,
 	fprintf(file_En, "[%p];%f\n", codeptr_ra,total_energy);
 	
 	//likwid_markerStopRegion("compute");
+
+	// Limit number of regions to run, to speed up profiling.
+	// Note: this is a simple limit, and may not be sufficient for large-scale applications.
+    // Adjust as needed.
+	#ifdef NUMBER_OF_REGIONS
+		parallel_region_call++;
+		printf("Running %d parallel regions\n", parallel_region_call);   
+		if (parallel_region_call >= 30){  
+			exit(0);
+		}
+	#endif
 }
 
 #define register_callback_t(name, type)                                        \
