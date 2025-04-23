@@ -9,6 +9,7 @@ from .utils import exec_cmd
 import glob
 import pandas as pd
 from abc import ABC, abstractmethod
+import subprocess
 
 stat_fn = dict()
 stat_fn["med"] = np.median
@@ -263,6 +264,287 @@ class BaseExplorer(ABC):
             if changes[i]:
                 self._custom_env |= {k: str(v)}
 
+    def change_certain_bits(self, start_bit, end_bit, new_value, current_reg_value):
+        """ 
+        Set the bits between start_bit and end_bit in 'value' to 'new_value'.
+
+        Args:
+            current_reg_value: The current value.
+            start_bit: The starting bit position (inclusive).
+            end_bit: The ending bit position (inclusive).
+            new_value : The new value to set in the specified bit range.
+
+        Returns:
+            str: The modified value in hex as a string.
+        """
+        # current_reg_value = int(current_reg_value, 16)  
+        # Create a mask for the bit range
+        mask = ((1 << (end_bit - start_bit + 1)) - 1) << start_bit
+
+        # Clear the bits in the range
+        current_reg_value &= ~mask
+
+        # Align the new value with the target bit range and set the bits
+        current_reg_value |= (new_value << start_bit) & mask
+
+        return current_reg_value
+
+
+    def compute_register_value(self, prefetcher_name, status, current_reg_value, register_name):
+        """
+        Compute the new register value based on the prefetcher name, status, and current value.
+
+        Args:
+            prefetcher_name (str): Name of the prefetcher.
+            status (str): Desired status (e.g., ON, OFF).
+            current_reg_value (int): Current register value.
+            register_name (str): Register name (e.g., 0x1A4, 0x1320).
+
+        Returns:
+            int: Updated register value.
+        """
+        MLC_STREAMER_BIT = 0
+        L1_NLP_BIT = 2
+        L1_IPP_BIT = 3
+        L1_NPP_BIT = 4
+        AMP_BIT = 5
+        LLC_STREAMER_BIT = 43
+        L2_NLP_BIT = 40
+
+        if prefetcher_name == "MLC_LLC_STREAMER":
+            if status == "000000":  #ON
+                current_reg_value = current_reg_value & ~(1 << MLC_STREAMER_BIT)
+            else:  # OFF
+                current_reg_value = current_reg_value | (1 << MLC_STREAMER_BIT)
+            
+        elif prefetcher_name == "L1_NLP":
+            if status == "000000":  #ON
+                current_reg_value = current_reg_value & ~(1 << L1_NLP_BIT)
+            else:  # OFF
+                current_reg_value = current_reg_value | (1 << L1_NLP_BIT)
+        
+        elif prefetcher_name == "L1_IPP":
+            if status == "000000":  #ON
+                # print("status5: ", status)
+                current_reg_value = current_reg_value & ~(1 << L1_IPP_BIT)
+            else:  # OFF
+                current_reg_value = current_reg_value | (1 << L1_IPP_BIT)
+        
+        elif prefetcher_name == "L1_NPP":
+            if status == "000000":  #ON
+                current_reg_value = current_reg_value & ~(1 << L1_NPP_BIT)
+            else:  # OFF
+                current_reg_value = current_reg_value | (1 << L1_NPP_BIT)
+        
+        elif prefetcher_name == "AMP":
+            if status == "000000":  #ON
+                current_reg_value = current_reg_value & ~(1 << AMP_BIT)
+            else:  # OFF
+                current_reg_value = current_reg_value | (1 << AMP_BIT)
+        
+        elif prefetcher_name == "LLC_STREAMER": 
+            if status == "OFF":  #OFF
+                if register_name == '0x1320':
+                    current_reg_value = current_reg_value | (1 << LLC_STREAMER_BIT)
+                else:
+                    return current_reg_value
+            else:
+                if register_name == "0x1320":
+                # ON-MD-XQ-DD-DDO
+                    MD = int (status.split("-")[1])
+                    XQ = int (status.split("-")[2])
+                    current_reg_value = current_reg_value & ~(1 << LLC_STREAMER_BIT)
+                    current_reg_value = self.change_certain_bits(37, 42, MD, current_reg_value)   # Set the max distance
+                    current_reg_value = self.change_certain_bits(58, 62, XQ, current_reg_value)   # Set the XQ
+                elif register_name == "0x1322":
+                    DD = int (status.split("-")[3])
+                    DDO = int (status.split("-")[4])
+                    current_reg_value = self.change_certain_bits(14, 22, DD, current_reg_value)     #set the demand density
+                    current_reg_value = self.change_certain_bits(23, 26, DDO, current_reg_value)    #set the demand density override
+
+        elif prefetcher_name == "MLC_STREAMER":  
+            if status == "OFF": #OFF
+                if register_name == '0x1320':
+                    current_reg_value = current_reg_value | (1 << MLC_STREAMER_BIT)
+                else:
+                    return current_reg_value
+            else:
+                if register_name == '0x1A4': #ON
+                    current_reg_value = current_reg_value & ~(1 << MLC_STREAMER_BIT)
+                elif register_name == "0x1320":
+                # ON-MD-XQ-DD-DDO
+                    MD = int (status.split("-")[1])
+                    XQ = int (status.split("-")[2])
+                    current_reg_value = self.change_certain_bits(20, 24, MD, current_reg_value)   # Set the max distance
+                    current_reg_value = self.change_certain_bits(0, 4, XQ, current_reg_value)     # Set the XQ
+    
+                elif register_name == "0x1321":
+                    DD = int (status.split("-")[3])
+                    DDO = int (status.split("-")[4])
+                    current_reg_value = self.change_certain_bits(21, 28, DD, current_reg_value)   #set the demand density
+                    current_reg_value = self.change_certain_bits(29, 32, DDO, current_reg_value)  #set the demand density override
+           
+        elif prefetcher_name == "L2_NLP":
+            # if status == "0x161122147800":  #ON
+            if status == "OFF":
+                current_reg_value = current_reg_value | (1 << L2_NLP_BIT)
+            elif status == 'ON':  
+                # print("status14: ", status)
+                current_reg_value = current_reg_value & ~(1 << L2_NLP_BIT)
+        return current_reg_value
+
+
+    def set_prefetcher_status(self, prefetcher_name, status, core):
+        """
+        Set the status of a specific prefetcher for a given core.
+
+        Args:
+            prefetcher_name (str): The name of the prefetcher (e.g., "LLC_STREAMER", "MLC_STREAMER").
+            status (str): The desired status of the prefetcher (e.g., "ON", "OFF").
+            core (int): The core number to apply the changes to.
+
+        Returns:
+            int: The updated register value after applying the changes.
+        """
+        if prefetcher_name == "LLC_STREAMER":
+            command = ["sudo", "rdmsr", "0x1320", "-p", str(core)]
+            # print ("command1: ", command)
+            try:
+                # register_value: current value 
+                register_value = subprocess.check_output(command, text=True).strip()
+                # print("Current Register_val: ", bin(int(register_value, 16))[2:].zfill(64))
+                # print("Current Register Value1: ", bin(int(register_value, 16))[2:].zfill(6))
+            except subprocess.CalledProcessError as e:
+                print("Error:", e)
+        
+            register = self.compute_register_value(prefetcher_name, status, int (register_value, 16), "0x1320")
+            # print("Register Value111: ", register)
+            command = ["sudo", "wrmsr", "-p", str(core), "0x1320", hex(register)]
+            # print ("command2: ", command)
+            try:
+                command_output = subprocess.check_output(command, text=True).strip()
+                # print(command_output)
+            except subprocess.CalledProcessError as e:
+                print("Error:", e)
+
+             
+            command = ["sudo", "rdmsr", "0x1322", "-p", str(core)]
+            # print ("command1: ", command)
+            try:
+                # register_value: current value 
+                register_value = subprocess.check_output(command, text=True).strip()
+                # print("Current Register_val: ", bin(int(register_value, 16))[2:].zfill(64))
+                # print("Current Register Value1: ", bin(int(register_value, 16))[2:].zfill(6))
+            except subprocess.CalledProcessError as e:
+                print("Error:", e)
+        
+            register = self.compute_register_value(prefetcher_name, status, int (register_value, 16), "0x1322")
+            # print("Register Value111: ", register)
+            
+            command = ["sudo", "wrmsr", "-p", str(core), "0x1322", hex(register)]
+            
+            # print ("command2: ", command)
+            try:
+                command_output = subprocess.check_output(command, text=True).strip()
+                # print(command_output)
+            except subprocess.CalledProcessError as e:
+                print("Error:", e)
+
+        elif prefetcher_name == "MLC_STREAMER":
+            command = ["sudo", "rdmsr", "0x1A4", "-p", str(core)]
+            try:
+                # register_value: current value 
+                register_value = subprocess.check_output(command, text=True).strip()
+                # print("Current Register_val: ", bin(int(register_value, 16))[2:].zfill(64))
+                # print("Current Register Value1: ", bin(int(register_value, 16))[2:].zfill(6))
+            except subprocess.CalledProcessError as e:
+                print("Error:", e)
+        
+            register = self.compute_register_value(prefetcher_name, status, int (register_value, 16), "0x1A4")
+            command = ["sudo", "wrmsr", "-p", str(core), "0x1A4", hex(register)]
+
+            try:
+                command_output = subprocess.check_output(command, text=True).strip()
+            except subprocess.CalledProcessError as e:
+                print("Error:", e)
+
+
+            command = ["sudo", "rdmsr", "0x1320", "-p", str(core)]
+            try:
+                # register_value: current value 
+                register_value = subprocess.check_output(command, text=True).strip()
+                # print("Current Register_val: ", bin(int(register_value, 16))[2:].zfill(64))
+                # print("Current Register Value1: ", bin(int(register_value, 16))[2:].zfill(6))
+            except subprocess.CalledProcessError as e:
+                print("Error:", e)
+        
+            register = self.compute_register_value(prefetcher_name, status, int (register_value, 16), "0x1320")
+            # print("Register Value111: ", register)
+            
+            command = ["sudo", "wrmsr", "-p", str(core), "0x1320", hex(register)]
+            try:
+                command_output = subprocess.check_output(command, text=True).strip()
+                # print(command_output)
+            except subprocess.CalledProcessError as e:
+                print("Error:", e)
+
+             
+            command = ["sudo", "rdmsr", "0x1321", "-p", str(core)]
+            try:
+                # register_value: current value 
+                register_value = subprocess.check_output(command, text=True).strip()
+                # print("Current Register_val: ", bin(int(register_value, 16))[2:].zfill(64))
+                # print("Current Register Value1: ", bin(int(register_value, 16))[2:].zfill(6))
+            except subprocess.CalledProcessError as e:
+                print("Error:", e)
+        
+            register = self.compute_register_value(prefetcher_name, status, int (register_value, 16), "0x1321")
+            # print("Register Value111: ", register)
+            
+            command = ["sudo", "wrmsr", "-p", str(core), "0x1321", hex(register)]
+            try:
+                command_output = subprocess.check_output(command, text=True).strip()
+                # print(command_output)
+            except subprocess.CalledProcessError as e:
+                print("Error:", e)
+
+        elif prefetcher_name == "L2_NLP":
+            command = ["sudo", "rdmsr", "0x1321", "-p", str(core)]
+            
+            try:
+                # register_value: current value 
+                register_value = subprocess.check_output(command, text=True).strip()
+                # print("Current Register Value1: ", bin(int(register_value, 16))[2:].zfill(6))
+            except subprocess.CalledProcessError as e:
+                print("Error:", e)
+
+            register = self.compute_register_value(prefetcher_name, status, int (register_value, 16), "0x1321")
+            command = ["sudo", "wrmsr", "-p", str(core), "0x1321", hex(register)]
+            try:
+                command_output = subprocess.check_output(command, text=True).strip()
+                # print(command_output)
+            except subprocess.CalledProcessError as e:
+                print("Error:", e)
+
+        else:   #l1_nlp, l1_ipp, l1_npp, amp
+            command = ["sudo", "rdmsr", "0x1A4", "-p", str(core)]
+            # print ("command5: ", command)
+            try:
+                # register_value: current value 
+                register_value = subprocess.check_output(command, text=True).strip()
+                # print("Current Register Value1: ", bin(int(register_value, 16))[2:].zfill(6))
+            except subprocess.CalledProcessError as e:
+                print("Error:", e)
+
+            register = self.compute_register_value(prefetcher_name, status, int (register_value, 16), "0x1A4")
+            command = ["sudo", "wrmsr", "-p", str(core), "0x1A4", hex(register)]
+            try:
+                command_output = subprocess.check_output(command, text=True).strip()
+            except subprocess.CalledProcessError as e:
+                print("Error:", e)
+     
+        return register
+
     def _exec_envcmd(self, config, changes):
         """
         Set environnement parameters through commands
@@ -297,9 +579,31 @@ class BaseExplorer(ABC):
         """
         Reset environnement parameters through commands
         """
-        for cmd in self.config.space["envcmd"]:
-            exec_cmd(cmd["name"] + " " + str(cmd["reset"]), self._custom_env)
+        register_map = {
+            "MLC_STREAMER": "0x1A4",
+            "L1_NLP": "0x1A4",
+            "L1_IPP": "0x1A4",
+            "L1_NPP": "0x1A4",
+            "AMP": "0x1A4",
+            "LLC_STREAMER": "0x1320",
+            "L2_NLP": "0x1321",
+        }
 
+        full_range_cores = range(8, 24)  # Cores 8-23
+        specific_cores = [8, 12, 16, 20]  #LLC_STREAMER & L2_NLP are set per modules, every 4 cores = 1 module
+        for cmd in self.config.space["envcmd"]:
+            print("resetting: ")
+            if cmd["name"] in {"MLC_STREAMER", "L1_NLP", "L1_IPP", "L1_NPP", "AMP"}:
+                for core in full_range_cores:
+                    k = f"sudo /usr/sbin/wrmsr -p {core} {register_map[cmd['name']]} {cmd['reset']}"
+                    exec_cmd(k, self._custom_env)
+            elif cmd["name"] in {"LLC_STREAMER","L2_NLP"}:
+                for core in specific_cores:
+                    k = f"sudo /usr/sbin/wrmsr -p {core} {register_map[cmd['name']]} {cmd['reset']}"
+                    exec_cmd(k, self._custom_env)
+            elif "freq.sh" in cmd["name"]:
+                exec_cmd(cmd["name"] + " " + str(cmd["reset"]), self._custom_env)
+           
 
     # Run the space exploration for all applications
     @abstractmethod
