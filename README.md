@@ -2,7 +2,8 @@
 
 COmpiler, Runtime and Hardware Parameter EXplorer (CORHPEX), is a framework to explore performance optimization spaces for any application.
 
-## Prefetch experiment
+## Apache License Version 2.0
+
 This is a work in progress code to be eventually merged within the main version of CORHPEX which can be accessed at:
 https://gitlab.inria.fr/corhpex/corhpex
 
